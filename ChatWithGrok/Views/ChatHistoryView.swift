@@ -5,6 +5,7 @@ struct ChatHistoryView: View {
     @State private var savedChats: [[Message]] = []
     @Environment(\.dismiss) private var dismiss
     @AppStorage("isIncognitoMode") private var isIncognitoMode = false
+    @State private var searchText: String = ""
     
     var body: some View {
         NavigationView {
@@ -41,8 +42,8 @@ struct ChatHistoryView: View {
                     .padding(.top, 100)
                 } else {
                     List {
-                        ForEach(savedChats.indices, id: \.self) { index in
-                            let chat = savedChats[index]
+                        ForEach(filteredChats().indices, id: \.self) { index in
+                            let chat = filteredChats()[index]
                             
                             Button(action: {
                                 loadChat(chat)
@@ -86,8 +87,10 @@ struct ChatHistoryView: View {
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive, action: {
                                     withAnimation {
-                                        StorageManager.shared.deleteChat(at: index)
-                                        savedChats.remove(at: index)
+                                        if let originalIndex = indexOfChat(chat) {
+                                            StorageManager.shared.deleteChat(at: originalIndex)
+                                            savedChats.remove(at: originalIndex)
+                                        }
                                     }
                                 }) {
                                     Label("Delete", systemImage: "trash")
@@ -107,6 +110,7 @@ struct ChatHistoryView: View {
                     }
                 }
             }
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic))
         }
         .onAppear {
             // Sıralı şekilde yükle
@@ -133,6 +137,23 @@ struct ChatHistoryView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         return formatter.string(from: date)
+    }
+    
+    private func filteredChats() -> [[Message]] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return savedChats }
+        return savedChats.filter { chat in
+            chat.contains { $0.content.localizedCaseInsensitiveContains(query) }
+        }
+    }
+    
+    private func indexOfChat(_ chat: [Message]) -> Int? {
+        // Find original index by identity of first and last messages if available
+        guard let first = chat.first, let last = chat.last else { return nil }
+        return savedChats.firstIndex(where: { original in
+            guard let ofirst = original.first, let olast = original.last else { return false }
+            return ofirst.id == first.id && olast.id == last.id && original.count == chat.count
+        })
     }
 }
 

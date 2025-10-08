@@ -86,6 +86,6 @@ Yeni modeller daha hızlı ve daha yetenekli:
 
 ---
 
-✨ **SecureAI artık daha güncel ve kullanıcı dostu!**
-✨ **SecureAI is now more up-to-date and user-friendly!**
+✨ **LockMind artık daha güncel ve kullanıcı dostu!**
+✨ **LockMind is now more up-to-date and user-friendly!**
 

@@ -21,6 +21,7 @@ struct SettingsView: View {
     @State private var showingProfileSettings = false
     let FREE_DAILY_LIMIT = 20
     let aiModels = ["grok-beta", "grok-alpha", "grok-lite", "gemini-1.5-flash", "gpt-4", "gpt-4-mini"]
+    @AppStorage("minimalHome") private var minimalHome = false
     
     var body: some View {
         NavigationView {
@@ -168,6 +169,19 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
+
+                    Toggle(isOn: $minimalHome) {
+                        Label {
+                            Text("Minimal Home")
+                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
+                        } icon: {
+                            Image(systemName: "rectangle.topthird.inset.filled")
+                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
+                        }
+                    }
+                    Text("Show only the top and bottom bars on the home screen.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
                 
                 Section("About") {
@@ -175,7 +189,7 @@ struct SettingsView: View {
                         Text("App Name")
                             .foregroundColor(systemColorScheme == .dark ? .white : .black)
                         Spacer()
-                        Text("SecureAI")
+                        Text("LockMind")
                             .foregroundColor(.gray)
                     }
                     
@@ -464,8 +478,8 @@ struct AIModelSelectorView: View {
                         }
                     }
 
-                    Button(action: { dismiss() }) {
-                        Text("Done")
+                    Button(action: { Task { await loadAllProviders() } }) {
+                        Text("Refresh")
                             .fontWeight(.bold)
                             .foregroundColor(.white)
                             .padding()
@@ -479,7 +493,7 @@ struct AIModelSelectorView: View {
             }
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic))
             .navigationTitle("Select AI Model")
-            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Refresh") { Task { await loadAllProviders() } } } }
+            .toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("Done") { dismiss() } } }
             .refreshable { await loadAllProviders() }
         }
         .task { await loadAllProviders() }
@@ -496,8 +510,8 @@ struct AIModelSelectorView: View {
     }
 
     private var gridColumns: [GridItem] {
-        let count = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 2
-        return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
+        let minWidth: CGFloat = UIDevice.current.userInterfaceIdiom == .pad ? 260 : 220
+        return [GridItem(.adaptive(minimum: minWidth, maximum: 400), spacing: 12)]
     }
 }
 
@@ -548,8 +562,11 @@ struct DetailedModelCard: View {
                     Text(model.name)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     
-                    Spacer()
+                    Spacer(minLength: 8)
                     
                     Text(model.tier)
                         .font(.caption2)
@@ -627,7 +644,7 @@ struct AdvancedSettingsView: View {
                         Text("Grok API Key")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        SecureField("Enter Grok API Key", text: $grokAPIKey)
+                        LockField("Enter Grok API Key", text: $grokAPIKey)
                             .textContentType(.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
@@ -638,7 +655,7 @@ struct AdvancedSettingsView: View {
                         Text("OpenAI API Key")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        SecureField("Enter OpenAI API Key", text: $openAIAPIKey)
+                        LockField("Enter OpenAI API Key", text: $openAIAPIKey)
                             .textContentType(.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
@@ -649,7 +666,7 @@ struct AdvancedSettingsView: View {
                         Text("Claude (Anthropic) API Key")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        SecureField("Enter Claude API Key", text: $claudeAPIKey)
+                        LockField("Enter Claude API Key", text: $claudeAPIKey)
                             .textContentType(.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
@@ -660,7 +677,7 @@ struct AdvancedSettingsView: View {
                         Text("Google Gemini API Key")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        SecureField("Enter Gemini API Key", text: $geminiAPIKey)
+                        LockField("Enter Gemini API Key", text: $geminiAPIKey)
                             .textContentType(.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)

@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  SecureAI
+//  LockMind
 //
 //  Created by Efe Türkel on 3.11.2024.
 //
@@ -24,6 +24,7 @@ struct ContentView: View {
     @AppStorage("lastMessageDate") private var lastMessageDate = Date()
     @State private var showingUpgradeView = false
     @State private var selectedAIMode: AIMode = .general
+    @AppStorage("selectedAIMode") private var storedAIModeRaw: String = AIMode.general.rawValue
     @State private var showingModeSelector = false
     @State private var showingLimitPopup = false
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled = true
@@ -37,6 +38,7 @@ struct ContentView: View {
     @State private var claudeAPIKey: String = UserDefaults.standard.string(forKey: "claudeAPIKey") ?? ""
     @AppStorage("avatar") private var avatar = "xai2_logo"
     @AppStorage("userName") private var userName = ""
+    @AppStorage("minimalHome") private var minimalHome = false
     
     let FREE_DAILY_LIMIT = Int.max
     
@@ -94,15 +96,19 @@ struct ContentView: View {
                         IncognitoModeIndicator(isIncognitoMode: $isIncognitoMode)
                     }
                     
-                    // Mesajlar kısmı
-                    MessagesView(
-                        messages: $messages,
-                        currentInput: $currentInput,
-                        isLoading: $isLoading,
-                        keyboardHeight: $keyboardHeight,
-                        selectedAIModel: $selectedAIModel
-                    )
-                    .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
+                    // Mesajlar kısmı (Minimal Home: yalnızca mesaj yokken gizle)
+                    if !(minimalHome && messages.isEmpty) {
+                        MessagesView(
+                            messages: $messages,
+                            currentInput: $currentInput,
+                            isLoading: $isLoading,
+                            keyboardHeight: $keyboardHeight,
+                            selectedAIModel: $selectedAIModel
+                        )
+                        .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
+                    } else {
+                        Spacer()
+                    }
                     // InputView en altta sabit
                     InputView(
                         currentInput: $currentInput,
@@ -113,11 +119,12 @@ struct ContentView: View {
                     .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
                 }
             }
-            .navigationBarTitle("SecureAI")
+            .navigationBarTitle("LockMind")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("SecureAI").font(.headline)
+                    Text("LockMind")
+                        .font(.headline)
                 }
             }
             .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
@@ -173,6 +180,10 @@ struct ContentView: View {
         }
         .onAppear {
             checkAndResetDailyLimit()
+            // Sync stored AI mode
+            if let restored = AIMode(rawValue: storedAIModeRaw) {
+                selectedAIMode = restored
+            }
             
             // Load API keys
             apiKey = UserDefaults.standard.string(forKey: "grokApiKey") ?? ""
@@ -438,6 +449,8 @@ struct ContentView: View {
                         botMessage: response,
                         responseTime: responseTime
                     )
+                    // Persist chosen mode for future sessions
+                    storedAIModeRaw = selectedAIMode.rawValue
                     // Günlük sayaç artık kullanılmıyor
                     lastMessageDate = Date()
                 }
@@ -803,7 +816,7 @@ struct MessagesView: View {
                             }
                         }
                         
-                        if isLoading {
+                        if isLoading && !messages.contains(where: { $0.isLoading }) {
                             LoadingView(selectedModel: selectedAIModel)
                                 .id("loading")
                         }

@@ -7,7 +7,7 @@ class MockAIService {
     func sendMessage(_ message: String, model: String, previousMessages: [Message]) async throws -> String {
         let canned: [String] = [
             "This is a demo response showcasing the app without API keys.",
-            "Thanks for trying SecureAI! Add your API key in Settings to use real models.",
+            "Thanks for trying LockMind! Add your API key in Settings to use real models.",
             "You can switch models and features even in Demo Mode."
         ]
         let suffix = [

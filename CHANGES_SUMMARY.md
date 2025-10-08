@@ -1,12 +1,12 @@
-# SecureAI - Değişiklikler Özeti / Changes Summary
+# LockMind - Değişiklikler Özeti / Changes Summary
 
 ## Türkçe
 
 ### Yapılan Değişiklikler:
 
 #### 1. Uygulama İsmi Değiştirildi
-- **ChatWithGrok** → **SecureAI**
-- Ana uygulama dosyası: `ChatWithGrokApp.swift` → `SecureAIApp.swift`
+- **ChatWithGrok** → **LockMind**
+- Ana uygulama dosyası: `ChatWithGrokApp.swift` → `LockMindApp.swift`
 - Navigasyon başlığı güncellendi
 - Ayarlar sayfasında uygulama adı görüntüleniyor
 
@@ -73,8 +73,8 @@ Tüm API anahtarları şimdi şu anahtarlarla UserDefaults'ta saklanıyor:
 ### Changes Made:
 
 #### 1. Application Name Changed
-- **ChatWithGrok** → **SecureAI**
-- Main app file: `ChatWithGrokApp.swift` → `SecureAIApp.swift`
+- **ChatWithGrok** → **LockMind**
+- Main app file: `ChatWithGrokApp.swift` → `LockMindApp.swift`
 - Navigation title updated
 - App name displayed in settings
 
@@ -157,7 +157,7 @@ All API keys now stored in UserDefaults with these keys:
 3. **Kullanmak istediğiniz AI modelini seçin** (her provider için 3-5 model mevcut)
 4. **API anahtarınızı girin**
 5. "Save & Continue" butonuna tıklayın
-6. Artık SecureAI'ı kullanabilirsiniz!
+6. Artık LockMind'ı kullanabilirsiniz!
 
 API anahtarınızı değiştirmek için:
 - Settings → API Keys → Manage API Keys
@@ -168,7 +168,7 @@ API anahtarınızı değiştirmek için:
 3. **Choose your AI model** (3-5 models available per provider)
 4. **Enter your API key**
 5. Click "Save & Continue"
-6. Start using SecureAI!
+6. Start using LockMind!
 
 To change your API key:
 - Settings → API Keys → Manage API Keys

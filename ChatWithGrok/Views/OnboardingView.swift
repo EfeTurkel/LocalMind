@@ -10,8 +10,10 @@ struct OnboardingView: View {
     @AppStorage("userProfile") private var userProfileData: Data = Data()
     @State private var currentPage = 0
     @AppStorage("userName") private var savedUserName = ""
+    private let totalPages = 4
     
     var body: some View {
+        ZStack(alignment: .bottom) {
         TabView(selection: $currentPage) {
             // İlk sayfa - xAI ve Grok tanıtımı
             VStack(spacing: 0) {
@@ -25,20 +27,9 @@ struct OnboardingView: View {
                     Image("xai_logo")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: 140, height: 140)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [.purple.opacity(0.8), .blue.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 3
-                                )
-                        )
-                        .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                        .frame(width: 160, height: 160)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
                         .padding(.bottom, 10)
                     
                     VStack(spacing: 12) {
@@ -47,7 +38,7 @@ struct OnboardingView: View {
                             .foregroundColor(.secondary)
                         
                         Text("Most Successful AI Models")
-                            .font(.system(size: 32, weight: .bold))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                             .multilineTextAlignment(.center)
                             .foregroundStyle(
                                 LinearGradient(
@@ -88,12 +79,18 @@ struct OnboardingView: View {
                 Spacer()
                 
                 VStack(spacing: 16) {
-                    Image(systemName: "wand.and.stars")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.blue)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 90, height: 90)
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 38))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.tint)
+                    }
                     
                     Text("Custom AI Models")
-                        .font(.title2)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .fontWeight(.bold)
                     
                     Text("Choose from different AI models\nfor specialized conversations")
@@ -103,12 +100,18 @@ struct OnboardingView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    Image(systemName: "message.and.waveform")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.blue)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 90, height: 90)
+                        Image(systemName: "message.and.waveform")
+                            .font(.system(size: 38))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.tint)
+                    }
                     
                     Text("Natural Conversations")
-                        .font(.title2)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .fontWeight(.bold)
                     
                     Text("Chat naturally and get\nhuman-like responses")
@@ -118,12 +121,18 @@ struct OnboardingView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    Image(systemName: "key.fill")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.blue)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 90, height: 90)
+                        Image(systemName: "key.fill")
+                            .font(.system(size: 38))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.tint)
+                    }
                     
                     Text("Secure Access")
-                        .font(.title2)
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .fontWeight(.bold)
                     
                     Text("Use your API key for\nsecure communication")
@@ -268,6 +277,38 @@ struct OnboardingView: View {
         }
         .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
         .indexViewStyle(PageIndexViewStyle(backgroundDisplayMode: .never))
+
+        // Bottom progress bar & controls
+        VStack(spacing: 10) {
+            ProgressView(value: Double(currentPage + 1), total: Double(totalPages))
+                .progressViewStyle(.linear)
+            HStack {
+                Button(action: { withAnimation { currentPage = max(0, currentPage - 1) } }) {
+                    Label("Back", systemImage: "chevron.left")
+                }
+                .disabled(currentPage == 0)
+                Spacer()
+                Button(action: {
+                    withAnimation {
+                        if currentPage < totalPages - 1 {
+                            currentPage += 1
+                        } else {
+                            hasSeenOnboarding = true
+                        }
+                    }
+                }) {
+                    Label(currentPage < totalPages - 1 ? "Next" : "Finish", systemImage: currentPage < totalPages - 1 ? "chevron.right" : "checkmark.circle.fill")
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.horizontal)
+        .padding(.bottom, 12)
+        }
     }
 }
 

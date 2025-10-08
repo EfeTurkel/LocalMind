@@ -5,7 +5,7 @@
 ## 🎯 Önemli Değişiklikler
 
 ### ✨ YENİ: Claude (Anthropic) Desteği Eklendi!
-SecureAI artık **4 farklı AI sağlayıcıyı** destekliyor:
+LockMind artık **4 farklı AI sağlayıcıyı** destekliyor:
 1. ✅ Grok (X.AI)
 2. ✅ OpenAI
 3. 🆕 **Claude (Anthropic)** - YENİ!
@@ -176,7 +176,7 @@ SecureAI artık **4 farklı AI sağlayıcıyı** destekliyor:
 
 ✅ **Tüm API key'ler local'de** (UserDefaults)
 ✅ **Hiçbir key sunucumuza gönderilmiyor**
-✅ **SecureField ile güvenli giriş**
+✅ **LockField ile güvenli giriş**
 ✅ **Her provider ayrı key**
 ✅ **Kullanıcı kontrolünde**
 
@@ -202,7 +202,7 @@ SecureAI artık **4 farklı AI sağlayıcıyı** destekliyor:
 
 ## 🎉 Sonuç
 
-SecureAI artık **piyasadaki en kapsamlı AI sohbet uygulamalarından biri**:
+LockMind artık **piyasadaki en kapsamlı AI sohbet uygulamalarından biri**:
 - ✅ 4 AI Sağlayıcı
 - ✅ 18 Farklı Model
 - ✅ Tam API Entegrasyonu
@@ -211,5 +211,5 @@ SecureAI artık **piyasadaki en kapsamlı AI sohbet uygulamalarından biri**:
 
 ---
 
-**SecureAI** - Your AI, Your Keys, Your Privacy! 🔐
+**LockMind** - Your AI, Your Keys, Your Privacy! 🔐
 

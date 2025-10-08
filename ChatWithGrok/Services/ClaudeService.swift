@@ -1,6 +1,6 @@
 //
 //  ClaudeService.swift
-//  SecureAI
+//  LockMind
 //
 //  Claude (Anthropic) API Service
 //

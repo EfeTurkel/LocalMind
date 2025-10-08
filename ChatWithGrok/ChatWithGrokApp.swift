@@ -1,6 +1,6 @@
 //
-//  SecureAIApp.swift
-//  SecureAI
+//  LockMindApp.swift
+//  LockMind
 //
 //  Created by Efe Türkel on 3.11.2024.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct SecureAIApp: App {
+struct LockMindApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("preferredColorScheme") private var preferredColorScheme: Int = 0
     @Environment(\.colorScheme) private var systemColorScheme

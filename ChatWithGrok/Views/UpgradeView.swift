@@ -102,21 +102,70 @@ struct UpgradeView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Bilgilendirme
-                VStack(alignment: .leading, spacing: 12) {
+                // Information
+                VStack(alignment: .leading, spacing: 14) {
                     Text("Thank You")
                         .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .padding(.bottom, 4)
                     
-                    PremiumFeatureRow(
-                        icon: "heart.fill",
-                        title: "Your support matters",
-                        description: "Your tap helps keep the app free for everyone"
-                    )
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label {
+                            Text("This app is created by a student as a personal project.")
+                        } icon: {
+                            Image(systemName: "graduationcap.fill").foregroundStyle(.tint)
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        
+                        Label {
+                            Text("There is no commercial goal; your daily support simply helps keep the app free and running.")
+                        } icon: {
+                            Image(systemName: "hand.thumbsup.fill").foregroundStyle(.tint)
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        
+                        Label {
+                            Text("Support taps are not payments. They are a small gesture that encourages development and covers basic costs.")
+                        } icon: {
+                            Image(systemName: "sparkles").foregroundStyle(.tint)
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 2)
+                    
+                    Divider()
+                        .opacity(0.25)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("What your support helps with")
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
+                            Text("Server and API usage for testing and demos")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
+                            Text("UI/UX improvements and accessibility work")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
+                            Text("Maintenance and bug fixes to keep the app reliable")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 .padding()
-                .background(Color(.systemGray6).opacity(0.5))
-                .cornerRadius(12)
+                .background(.ultraThinMaterial)
+                .cornerRadius(16)
                 .padding(.horizontal)
                 
                 Spacer(minLength: 8)

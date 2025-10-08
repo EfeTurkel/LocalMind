@@ -1,8 +1,8 @@
 //
 //  APIKeySetupView.swift
-//  SecureAI
+//  LockMind
 //
-//  Created for SecureAI
+//  Created for LockMind
 //
 
 import SwiftUI
@@ -79,7 +79,7 @@ struct APIKeySetupView: View {
                             .font(.system(size: 60))
                             .foregroundColor(.blue)
                         
-                        Text("Welcome to SecureAI")
+                        Text("Welcome to LockMind")
                             .font(.title)
                             .fontWeight(.bold)
                         
@@ -142,7 +142,7 @@ struct APIKeySetupView: View {
                             .font(.headline)
                             .padding(.horizontal)
                         
-                        SecureField("Enter your API key", text: $tempAPIKey)
+                        LockField("Enter your API key", text: $tempAPIKey)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .padding(.horizontal)
                             .textContentType(.password)
