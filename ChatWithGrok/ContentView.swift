@@ -350,7 +350,6 @@ struct ContentView: View {
                 onSend: sendMessage,
                 isLoading: isLoading
             )
-            .background(AppTheme.secondaryBackground.opacity(0.6))
             .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
         }
         .background(AppTheme.background)
@@ -373,13 +372,22 @@ struct ContentView: View {
                         isSidebarOpen = true
                     }
                 }) {
-                    Image(systemName: "line.horizontal.3")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(AppTheme.textPrimary)
-                        .padding(14)
-                        .background(AppTheme.controlBackground)
-                        .clipShape(Circle())
-                        .shadow(color: Color.black.opacity(0.18), radius: 10, x: 0, y: 8)
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.controlBackground.opacity(0.7))
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                        
+                        Image(systemName: "line.horizontal.3")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                    }
+                    .frame(width: 46, height: 46)
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.outline.opacity(0.3), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
                 }
                 .padding(.leading, 18)
                 .padding(.top, 18)
@@ -903,16 +911,7 @@ struct MessagesView: View {
                     }
                 }
             }
-            .background(
-                LinearGradient(
-                    colors: [
-                        AppTheme.background.opacity(0.6),
-                        AppTheme.secondaryBackground.opacity(0.8)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+            .background(Color.clear)
             .scrollDismissesKeyboard(.interactively)
             .contentShape(Rectangle())
             .onTapGesture {

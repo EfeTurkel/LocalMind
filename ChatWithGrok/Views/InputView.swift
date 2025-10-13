@@ -13,6 +13,21 @@ struct InputView: View {
     let FREE_DAILY_LIMIT = 20
     @Environment(\.colorScheme) private var colorScheme
     
+    private var placeholderText: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        
+        switch hour {
+        case 5..<12:
+            return "Good morning, how can I help?"
+        case 12..<17:
+            return "Good afternoon, what's on your mind?"
+        case 17..<22:
+            return "Good evening, how can I assist?"
+        default:
+            return "Good night, what can I help with?"
+        }
+    }
+    
     // Örnek öneriler
     private let defaultSuggestions = [
         Suggestion(text: "Write code for", category: .command),
@@ -24,84 +39,161 @@ struct InputView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Öneriler
-            if showSuggestions && !currentInput.isEmpty {
+        VStack(spacing: 0) {
+            // Modern Suggestions Bar
+            if showSuggestions && !currentInput.isEmpty && !filteredSuggestions.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 8) {
                         ForEach(filteredSuggestions) { suggestion in
-                            SuggestionButton(suggestion: suggestion) {
-                                currentInput = suggestion.text + " "
+                            ModernSuggestionChip(suggestion: suggestion) {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    currentInput = suggestion.text + " "
+                                }
                             }
                         }
                     }
                     .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
                 }
-                .frame(height: 44)
-                .background(AppTheme.secondaryBackground)
-                .clipShape(Capsule())
-                .padding(.horizontal)
+                .background(
+                    ZStack {
+                        AppTheme.background.opacity(0.9)
+                        
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .opacity(0.6)
+                    }
+                    .overlay(
+                        Rectangle()
+                            .fill(AppTheme.outline.opacity(0.2))
+                            .frame(height: 1),
+                        alignment: .top
+                    )
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             
-            // Mesaj girişi
+            // Modern Input Bar
             HStack(spacing: 12) {
-                if isFocused {
+                // Clear button (only when focused and has text)
+                if isFocused && !currentInput.isEmpty {
                     Button(action: {
-                        currentInput = ""
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            currentInput = ""
+                        }
                     }) {
-                        Image(systemName: "trash")
-                            .font(.system(size: 20))
-                            .foregroundColor(AppTheme.destructive)
-                            .frame(width: 30, height: 30)
-                            .background(
-                                Circle()
-                                    .fill(AppTheme.destructive.opacity(0.12))
-                            )
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .frame(width: 36, height: 36)
                     }
                     .transition(.scale.combined(with: .opacity))
                 }
                 
-                TextField("Ask anything...", text: $currentInput, axis: .vertical)
-                    .focused($isFocused)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 14)
-                    .background(AppTheme.elevatedBackground)
-                    .cornerRadius(AppTheme.cornerRadius)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                            .stroke(AppTheme.outline)
-                    )
-                    .lineLimit(5) // Maksimum 5 satır göster
-                    .onChange(of: currentInput) { oldValue, newValue in
-                        withAnimation {
-                            showSuggestions = !newValue.isEmpty
+                // Text Input with Modern Design
+                HStack(spacing: 12) {
+                    TextField(placeholderText, text: $currentInput, axis: .vertical)
+                        .focused($isFocused)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .tint(AppTheme.accent)
+                        .lineLimit(5)
+                        .onChange(of: currentInput) { oldValue, newValue in
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                showSuggestions = !newValue.isEmpty
+                            }
                         }
+                    
+                    // Character count or loading indicator
+                    if !currentInput.isEmpty {
+                        Text("\(currentInput.count)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(AppTheme.textSecondary.opacity(0.6))
+                            .transition(.opacity)
                     }
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(AppTheme.elevatedBackground)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .stroke(
+                                    isFocused ? AppTheme.accent.opacity(0.5) : AppTheme.outline.opacity(0.6),
+                                    lineWidth: isFocused ? 1.5 : 1
+                                )
+                        )
+                )
                 
-                Button(action: onSend) {
-                    Image(systemName: isLoading ? "hourglass" : "paperplane.fill")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundStyle(dailyMessageCount >= FREE_DAILY_LIMIT ? AppTheme.destructive : AppTheme.accent)
-                        .symbolEffect(.bounce, value: shouldBounce)
+                // Modern Send Button
+                Button(action: {
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
+                    onSend()
+                }) {
+                    ZStack {
+                        if currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading {
+                            Circle()
+                                .fill(AppTheme.controlBackground)
+                                .frame(width: 48, height: 48)
+                        } else {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [AppTheme.accent, AppTheme.accent.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 48, height: 48)
+                        }
+                        
+                        Image(systemName: isLoading ? "hourglass" : "arrow.up")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(
+                                currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading
+                                    ? AppTheme.textSecondary
+                                    : .white
+                            )
+                            .symbolEffect(.bounce, value: shouldBounce)
+                    }
                 }
                 .disabled(currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
+                .shadow(
+                    color: currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        ? .clear
+                        : AppTheme.accent.opacity(0.3),
+                    radius: 12,
+                    x: 0,
+                    y: 6
+                )
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
-                    .fill(AppTheme.secondaryBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
-                            .stroke(AppTheme.outline)
+                ZStack {
+                    AppTheme.background
+                    
+                    // Subtle gradient overlay
+                    LinearGradient(
+                        colors: [
+                            AppTheme.background.opacity(0.8),
+                            AppTheme.secondaryBackground.opacity(0.4)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
+                }
+                .background(.ultraThinMaterial.opacity(0.5))
             )
-            .shadow(color: Color.black.opacity(0.25), radius: 20, x: 0, y: 18)
-            .animation(.easeInOut, value: isFocused)
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
         }
         .onAppear {
-            bounceTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-                shouldBounce.toggle()
+            bounceTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+                if currentInput.isEmpty {
+                    shouldBounce.toggle()
+                }
             }
             suggestions = defaultSuggestions
         }
@@ -119,26 +211,47 @@ struct InputView: View {
     }
 }
 
-struct SuggestionButton: View {
+// MARK: - Modern Suggestion Chip
+
+struct ModernSuggestionChip: View {
     let suggestion: Suggestion
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
+        Button(action: {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            action()
+        }) {
+            HStack(spacing: 6) {
                 Image(systemName: suggestion.category.icon)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppTheme.accent)
+                
                 Text(suggestion.text)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppTheme.textPrimary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(AppTheme.chipBackground)
-            .overlay(
+            .background(
                 Capsule()
-                    .stroke(AppTheme.chipBorder, lineWidth: 1)
+                    .fill(AppTheme.controlBackground.opacity(0.8))
+                    .overlay(
+                        Capsule()
+                            .stroke(AppTheme.outline.opacity(0.6), lineWidth: 1)
+                    )
             )
         }
-        .foregroundColor(AppTheme.textPrimary)
+        .buttonStyle(SuggestionButtonStyle())
+    }
+}
+
+struct SuggestionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 } 

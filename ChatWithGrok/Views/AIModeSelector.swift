@@ -143,23 +143,26 @@ private struct ModeCard: View {
     let isSelected: Bool
     let namespace: Namespace.ID
     let onTap: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text(modeBadgeTitle)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(accentColor.opacity(0.9))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                        .textCase(.uppercase)
+                        .kerning(0.5)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(accentColor.opacity(0.16))
+                        .background(accentColor)
                         .clipShape(Capsule())
                         .matchedGeometryEffect(id: "badge-\(mode.rawValue)", in: namespace)
                     Spacer()
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.system(size: 22, weight: .semibold))
                             .foregroundStyle(.white, accentColor)
                             .symbolRenderingMode(.palette)
                             .transition(.scale.combined(with: .opacity))
@@ -167,59 +170,61 @@ private struct ModeCard: View {
                 }
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 14) {
                         Image(systemName: mode.icon)
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.system(size: 26, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 54, height: 54)
-                            .background(accentColor.gradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .shadow(color: accentColor.opacity(0.35), radius: 12, x: 0, y: 8)
+                            .frame(width: 58, height: 58)
+                            .background(
+                                LinearGradient(
+                                    colors: [accentColor, accentColor.opacity(0.8)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .shadow(color: accentColor.opacity(0.4), radius: 12, x: 0, y: 6)
                         
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 5) {
                             Text(mode.rawValue)
-                                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundColor(AppTheme.textPrimary)
+                                .font(.system(size: 19, weight: .bold, design: .rounded))
+                                .foregroundColor(colorScheme == .dark ? .white : Color(hex: 0x1a1a1a))
                             Text(mode.description)
-                                .font(.system(size: 14))
-                                .foregroundColor(AppTheme.textSecondary)
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(colorScheme == .dark ? Color.white.opacity(0.75) : Color(hex: 0x666666))
                                 .fixedSize(horizontal: false, vertical: true)
+                                .lineLimit(2)
                         }
                     }
                     
                     Text(examplePrompt)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(accentColor)
+                        .foregroundColor(colorScheme == .dark ? accentColor.opacity(0.9) : accentColor)
                         .lineLimit(2)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .background(accentColor.opacity(colorScheme == .dark ? 0.15 : 0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.65),
-                                Color.white.opacity(0.22)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        colorScheme == .dark
+                            ? AppTheme.controlBackground.opacity(0.6)
+                            : Color.white.opacity(0.9)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(accentColor.opacity(isSelected ? 0.12 : 0.06))
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(accentColor.opacity(isSelected ? 0.08 : 0.03))
                     )
-                    .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 12)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 16, x: 0, y: 8)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .stroke(isSelected ? accentColor.opacity(0.6) : AppTheme.outline.opacity(0.3), lineWidth: isSelected ? 2 : 1)
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(isSelected ? accentColor.opacity(0.7) : AppTheme.outline.opacity(0.4), lineWidth: isSelected ? 2.5 : 1)
             )
             .scaleEffect(isSelected ? 1.02 : 1.0)
             .animation(.spring(response: 0.36, dampingFraction: 0.82), value: isSelected)
