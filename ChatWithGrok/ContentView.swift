@@ -82,6 +82,7 @@ struct ContentView: View {
                     ToolbarContent(
                         messages: $messages,
                         isIncognitoMode: isIncognitoMode,
+                        selectedAIMode: selectedAIMode,
                         showingModeSelector: $showingModeSelector,
                         dailyMessageCount: dailyMessageCount,
                         FREE_DAILY_LIMIT: FREE_DAILY_LIMIT,
@@ -118,6 +119,10 @@ struct ContentView: View {
                     .background(Color(.systemGroupedBackground))
                     .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
                 }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
             .navigationBarTitle("LockMind")
             .navigationBarTitleDisplayMode(.inline)
@@ -395,7 +400,16 @@ struct ContentView: View {
     }
     
     private func sendToSelectedModel(userText: String, context: ModelProviderContext) {
-        let history = messages.filter { !$0.isLoading }
+        // Build clean history: only real chat turns (user or assistant with model), no system/notice entries
+        let nonLoading = messages.filter { !$0.isLoading && ($0.isUser || !$0.aiModel.isEmpty) }
+        // Keep last 30 turns to avoid overflowing context
+        let trimmed = nonLoading.suffix(30)
+        let history: [Message]
+        if let last = trimmed.last, last.isUser {
+            history = Array(trimmed.dropLast())
+        } else {
+            history = Array(trimmed)
+        }
         Task {
             let startTime = Date()
             do {
@@ -425,7 +439,7 @@ struct ContentView: View {
                 case .gemini:
                     // Ensure SDK uses the currently selected Gemini model
                     GeminiService.shared.updateModel(selectedAIModel)
-                    response = try await GeminiService.shared.sendMessage(userText)
+                    response = try await GeminiService.shared.sendMessage(userText, previousMessages: history)
                 case .demo:
                     response = try await MockAIService.shared.sendMessage(userText, model: selectedAIModel, previousMessages: history)
                 }
@@ -555,6 +569,7 @@ struct ContentView: View {
 struct ToolbarContent: View {
     @Binding var messages: [Message]
     let isIncognitoMode: Bool
+    let selectedAIMode: AIMode
     @Binding var showingModeSelector: Bool
     let dailyMessageCount: Int
     let FREE_DAILY_LIMIT: Int
@@ -596,7 +611,7 @@ struct ToolbarContent: View {
             Button(action: {
                 showingModeSelector = true
             }) {
-                Image(systemName: "brain")
+                Image(systemName: selectedAIMode.icon)
                     .font(.system(size: 16))
                     .frame(width: 36, height: 36)
                     .background(
@@ -822,7 +837,7 @@ struct MessagesView: View {
                         }
                         
                         Color.clear
-                            .frame(height: keyboardHeight > 0 ? keyboardHeight - 20 : 0)
+                            .frame(height: keyboardHeight > 0 ? 8 : 0)
                             .id("keyboard")
                     }
                 }

@@ -38,11 +38,15 @@ class OpenAIService {
         let avatar = UserDefaults.standard.string(forKey: "avatar") ?? "xai2_logo"
         let personality = UserDefaults.standard.string(forKey: "personality") ?? "default"
         let customInstructions = UserDefaults.standard.string(forKey: "customInstructions") ?? ""
+        let modeRaw = UserDefaults.standard.string(forKey: "selectedAIMode") ?? AIMode.general.rawValue
+        let mode = AIMode(rawValue: modeRaw) ?? .general
         
         return """
         You are an AI assistant. Your avatar is \(avatar). Your personality is \(personality).
         
         Custom instructions: \(customInstructions)
+        
+        \(mode.systemPrompt)
         """
     }
 }
