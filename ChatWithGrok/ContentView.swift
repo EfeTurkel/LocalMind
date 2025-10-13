@@ -39,10 +39,26 @@ struct ContentView: View {
     @AppStorage("avatar") private var avatar = "xai2_logo"
     @AppStorage("userName") private var userName = ""
     @AppStorage("minimalHome") private var minimalHome = false
+    @State private var isSidebarOpen = false
+    @State private var sidebarSearchText: String = ""
+    @State private var sidebarSavedChats: [[Message]] = []
+    @State private var sidebarPinnedIdentifiers: Set<Double> = []
     
     let FREE_DAILY_LIMIT = Int.max
-    
-    let darkOrange = Color(red: 255/255, green: 140/255, blue: 0/255)
+
+    private var bottomSafeAreaInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first?
+            .safeAreaInsets.bottom ?? 0
+    }
+
+    private var keyboardPadding: CGFloat {
+        guard !isSidebarOpen else { return 0 }
+        let extra = max(keyboardHeight - bottomSafeAreaInset, 0)
+        return extra > 0 ? extra + 24 : 0
+    }
     
     private enum MessageSource {
         case user
@@ -72,74 +88,32 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                // Arka plan rengi
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // Toolbar içeriği
-                    ToolbarContent(
-                        messages: $messages,
-                        isIncognitoMode: isIncognitoMode,
-                        selectedAIMode: selectedAIMode,
-                        showingModeSelector: $showingModeSelector,
-                        dailyMessageCount: dailyMessageCount,
-                        FREE_DAILY_LIMIT: FREE_DAILY_LIMIT,
-                        showingLimitPopup: $showingLimitPopup,
-                        showingUpgradeView: $showingUpgradeView,
-                        showingChatHistory: $showingChatHistory,
-                        showingSettings: $showingSettings
-                    )
-                    
-                    // Incognito mod göstergesi
-                    if isIncognitoMode {
-                        IncognitoModeIndicator(isIncognitoMode: $isIncognitoMode)
-                    }
-                    
-                    // Mesajlar kısmı (Minimal Home: yalnızca mesaj yokken gizle)
-                    if !(minimalHome && messages.isEmpty) {
-                        MessagesView(
-                            messages: $messages,
-                            currentInput: $currentInput,
-                            isLoading: $isLoading,
-                            keyboardHeight: $keyboardHeight,
-                            selectedAIModel: $selectedAIModel
-                        )
-                        .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
-                    } else {
-                        Spacer()
-                    }
-                    // InputView en altta sabit
-                    InputView(
-                        currentInput: $currentInput,
-                        onSend: sendMessage,
-                        isLoading: isLoading
-                    )
-                    .background(Color(.systemGroupedBackground))
-                    .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
-                }
+            ZStack(alignment: .leading) {
+                mainBackground
+                chatLayer
+                sidebarLayer
             }
             .contentShape(Rectangle())
+            .overlay(alignment: .leading) {
+                if isSidebarOpen {
+                    HStack(spacing: 0) {
+                        Color.clear.frame(width: 300)
+                        Color.black.opacity(0.001)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    isSidebarOpen = false
+                                }
+                            }
+                    }
+                    .ignoresSafeArea()
+                }
+            }
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
-            .navigationBarTitle("LockMind")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("LockMind")
-                        .font(.headline)
-                }
-            }
-            .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .safeAreaInset(edge: .top, spacing: 8) { // Üst boşluk ekledik
-                Color.clear.frame(height: 4)
-            }
-            .toolbar {
-                // ... toolbar içeriği aynı ...
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingSettings) {
                 SettingsView(apiKey: $apiKey)
             }
@@ -226,11 +200,16 @@ struct ContentView: View {
                     handleSend(for: messageText, source: .tip)
                 }
             }
+
+            refreshSidebarChats()
         }
-        .onChange(of: scenePhase) { oldPhase, newPhase in
+        .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 checkAndResetDailyLimit()
             }
+        }
+        .onChange(of: messages.count) { _, _ in
+            refreshSidebarChats()
         }
     }
     
@@ -250,6 +229,165 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    private func refreshSidebarChats() {
+        sidebarPinnedIdentifiers = StorageManager.shared.loadPinnedIdentifiers()
+        sidebarSavedChats = StorageManager.shared.loadAllChats()
+    }
+
+    private var mainBackground: some View {
+        ZStack {
+            AppTheme.background
+                .ignoresSafeArea()
+
+            if activeColorScheme == .dark || preferredColorScheme == 2 {
+                RadialGradient(
+                    colors: [
+                        AppTheme.accent.opacity(0.12),
+                        AppTheme.background
+                    ],
+                    center: .topLeading,
+                    startRadius: 120,
+                    endRadius: 600
+                )
+                .ignoresSafeArea()
+            }
+        }
+    }
+
+    private var sidebarLayer: some View {
+        return SidebarContainer(
+            isOpen: $isSidebarOpen,
+            selectedAIMode: $selectedAIMode,
+            showingModeSelector: $showingModeSelector,
+            showingUpgradeView: $showingUpgradeView,
+            showingChatHistory: $showingChatHistory,
+            showingSettings: $showingSettings,
+            showingProfile: $showingProfile,
+            searchText: $sidebarSearchText,
+            savedChats: $sidebarSavedChats,
+            pinnedIdentifiers: $sidebarPinnedIdentifiers,
+            isIncognitoMode: isIncognitoMode,
+            dailyMessageCount: dailyMessageCount,
+            FREE_DAILY_LIMIT: FREE_DAILY_LIMIT,
+            onSelectChat: { chat in
+                let restoredMessages: [Message] = chat.map { message in
+                    Message(
+                        content: message.content,
+                        isUser: message.isUser,
+                        timestamp: message.timestamp,
+                        category: message.category,
+                        isLoading: false,
+                        aiModel: message.aiModel
+                    )
+                }
+
+                messages = restoredMessages
+                isLoading = false
+                currentInput = ""
+
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isSidebarOpen = false
+                }
+            },
+            onDeleteChat: { chat in
+                if let index = sidebarSavedChats.firstIndex(where: { $0.first?.id == chat.first?.id && $0.last?.id == chat.last?.id }) {
+                    StorageManager.shared.deleteChat(at: index)
+                    refreshSidebarChats()
+                }
+            },
+            onReturnHome: {
+                messages.removeAll()
+                currentInput = ""
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isSidebarOpen = false
+                }
+            },
+            onToggleIncognito: {
+                isIncognitoMode.toggle()
+            }
+        )
+        .frame(width: 300)
+        .offset(x: isSidebarOpen ? 0 : -300)
+        .opacity(isSidebarOpen ? 1 : 0)
+        .allowsHitTesting(isSidebarOpen)
+        .zIndex(isSidebarOpen ? 2 : 0)
+        .accessibilityHidden(false)
+        .background(AppTheme.background)
+        .overlay(alignment: .trailing) {
+            if isSidebarOpen {
+                Rectangle()
+                    .fill(AppTheme.outline.opacity(0.35))
+                    .frame(width: 1)
+                    .padding(.vertical, 16)
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private var chatLayer: some View {
+        return VStack(spacing: 0) {
+            Group {
+                if minimalHome && messages.isEmpty {
+                    Spacer(minLength: 0)
+                } else {
+                    MessagesView(
+                        messages: $messages,
+                        currentInput: $currentInput,
+                        isLoading: $isLoading,
+                        keyboardHeight: $keyboardHeight,
+                        selectedAIModel: $selectedAIModel
+                    )
+                    .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580, maxHeight: .infinity)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            InputView(
+                currentInput: $currentInput,
+                onSend: sendMessage,
+                isLoading: isLoading
+            )
+            .background(AppTheme.secondaryBackground.opacity(0.6))
+            .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
+        }
+        .background(AppTheme.background)
+        .clipShape(RoundedRectangle(cornerRadius: 0, style: .continuous))
+        .shadow(color: Color.clear, radius: 0)
+        .overlay(
+            Group {
+                if isSidebarOpen {
+                    VisualEffectBlur(style: .systemUltraThinMaterialDark)
+                        .ignoresSafeArea()
+                        .opacity(0.2)
+                        .transition(.opacity)
+                }
+            }
+        )
+        .overlay(alignment: .topLeading) {
+            if !isSidebarOpen {
+                Button(action: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isSidebarOpen = true
+                    }
+                }) {
+                    Image(systemName: "line.horizontal.3")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .padding(14)
+                        .background(AppTheme.controlBackground)
+                        .clipShape(Circle())
+                        .shadow(color: Color.black.opacity(0.18), radius: 10, x: 0, y: 8)
+                }
+                .padding(.leading, 18)
+                .padding(.top, 18)
+                .transition(.opacity.combined(with: .scale))
+            }
+        }
+        .padding(.bottom, keyboardPadding)
+        .ignoresSafeArea(edges: .bottom)
+        .zIndex(isSidebarOpen ? 1 : 2)
     }
     
     private func sendMessage() {
@@ -547,23 +685,6 @@ struct ContentView: View {
             }
         }
     }
-    
-    private func getTimeUntilReset() -> String {
-        let now = Date()
-        let resetTime = lastMessageDate.addingTimeInterval(24 * 60 * 60) // 24 saat ekle
-        
-        let components = Calendar.current.dateComponents([.hour, .minute], from: now, to: resetTime)
-        
-        if let hours = components.hour, let minutes = components.minute {
-            if hours > 0 {
-                return "\(hours)h \(minutes)m"
-            } else {
-                return "\(minutes)m"
-            }
-        }
-        
-        return "0m"
-    }
 }
 
 struct ToolbarContent: View {
@@ -579,232 +700,140 @@ struct ToolbarContent: View {
     @Binding var showingSettings: Bool
     @AppStorage("lastMessageDate") private var lastMessageDate = Date()
     @AppStorage("isPremium") private var isPremium = false
-    
-    let darkOrange = Color(red: 255/255, green: 140/255, blue: 0/255)
-    
+    var onSaveChat: (() -> Void)? = nil
+
     var body: some View {
-        HStack(spacing: 12) {
-            // Geri butonu en solda
+        HStack(spacing: 14) {
             if !messages.isEmpty {
                 Button(action: {
                     if !messages.isEmpty && !isIncognitoMode {
                         // Mevcut sohbeti kaydet
                         StorageManager.shared.saveChat(messages)
+                        onSaveChat?()
                     }
                     withAnimation {
                         messages.removeAll()
                     }
                 }) {
                     Image(systemName: "house.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(.blue)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.1))
-                        )
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.accent)
+                        .frame(width: 42, height: 42)
+                        .background(AppTheme.controlBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .frame(width: 44, height: 44)
             }
-            
-            // AI Mode Selector butonu
+
             Button(action: {
                 showingModeSelector = true
             }) {
-                Image(systemName: selectedAIMode.icon)
-                    .font(.system(size: 16))
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.purple.opacity(0.3),
-                                        Color.blue.opacity(0.3)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-            }
-            .frame(width: 44, height: 44)
-            
-            // Mesaj limiti göstergesi - 5'ten az kaldığında göster
-            if (FREE_DAILY_LIMIT - dailyMessageCount) < 5 {
-                Button(action: {
-                    showingLimitPopup = true
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "message.badge.filled.fill")
-                            .foregroundColor(dailyMessageCount >= FREE_DAILY_LIMIT ? .red : darkOrange)
-                            .symbolEffect(.pulse)
-                            .font(.system(size: 14))
-                        
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("\(FREE_DAILY_LIMIT - dailyMessageCount) left")
-                                .font(.system(size: 12, weight: .medium))
-                            
-                            if dailyMessageCount >= FREE_DAILY_LIMIT {
-                                let timeUntilReset = getTimeUntilReset()
-                                Text("Resets in \(timeUntilReset)")
-                                    .font(.system(size: 10))
-                            }
-                        }
-                        .foregroundColor(dailyMessageCount >= FREE_DAILY_LIMIT ? .red : darkOrange)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .frame(height: 36)
-                    .background(
-                        Capsule()
-                            .fill(dailyMessageCount >= FREE_DAILY_LIMIT ? Color.red.opacity(0.15) : darkOrange.opacity(0.15))
-                    )
+                HStack(spacing: 8) {
+                    Image(systemName: selectedAIMode.icon)
+                        .font(.system(size: 16, weight: .semibold))
+                    Text(selectedAIMode.rawValue)
+                        .font(.system(size: 14, weight: .semibold))
                 }
-                .frame(height: 44)
+                .foregroundColor(AppTheme.textPrimary)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .background(AppTheme.controlBackground)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(AppTheme.outline))
             }
-            
-            // Günlük destek butonu her zaman görünür
+
+            if (FREE_DAILY_LIMIT - dailyMessageCount) < 5 {
+                Button(action: { showingLimitPopup = true }) {
+                    limitIndicator
+                }
+            }
+
             Button(action: {
                 showingUpgradeView = true
             }) {
                 Image(systemName: "hands.sparkles.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(darkOrange)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Capsule()
-                            .fill(darkOrange.opacity(0.15))
-                    )
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppTheme.accent)
+                    .frame(width: 42, height: 42)
+                    .background(AppTheme.controlBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .frame(width: 44, height: 44)
-            
-            // Chat History butonu (Settings'den önce)
+
             if !isIncognitoMode {
                 Button(action: {
                     showingChatHistory = true
                 }) {
                     Image(systemName: "clock")
-                        .font(.system(size: 16))
-                        .foregroundColor(.blue)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.1))
-                        )
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 42, height: 42)
+                        .background(AppTheme.controlBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 }
-                .frame(width: 44, height: 44)
-                .transition(.opacity) // Animasyonlu geçiş ekledik
+                .transition(.opacity)
             }
-            
-            // Settings butonu en sağda
+
             Button(action: {
                 showingSettings = true
             }) {
                 Image(systemName: "gear")
-                    .font(.system(size: 16))
-                    .foregroundColor(.blue)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Capsule()
-                            .fill(Color.blue.opacity(0.1))
-                    )
-            }
-            .frame(width: 44, height: 44)
-        }
-        .padding(.horizontal, 8)
-        .background(Color(.systemGroupedBackground))
-    }
-    
-    private func getTimeUntilReset() -> String {
-        let now = Date()
-        let resetTime = lastMessageDate.addingTimeInterval(24 * 60 * 60) // 24 saat ekle
-        
-        let components = Calendar.current.dateComponents([.hour, .minute], from: now, to: resetTime)
-        
-        if let hours = components.hour, let minutes = components.minute {
-            if hours > 0 {
-                return "\(hours)h \(minutes)m"
-            } else {
-                return "\(minutes)m"
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+                    .frame(width: 42, height: 42)
+                    .background(AppTheme.controlBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
         }
-        
-        return "0m"
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.2, style: .continuous)
+                .fill(AppTheme.secondaryBackground.opacity(0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.2, style: .continuous)
+                        .stroke(AppTheme.outline)
+                )
+        )
+        .shadow(color: Color.black.opacity(0.26), radius: 24, x: 0, y: 18)
     }
-}
 
-struct IncognitoModeIndicator: View {
-    @Binding var isIncognitoMode: Bool
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: "eye.slash.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
-                    .symbolEffect(.pulse.byLayer, options: .repeating)
-                
-                Text("Incognito Mode Active")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Spacer()
-                
-                // Kapatma butonu
-                Button(action: {
-                    withAnimation {
-                        isIncognitoMode = false
-                        let impact = UIImpactFeedbackGenerator(style: .medium)
-                        impact.impactOccurred()
-                    }
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
+    private var limitIndicator: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "message.badge.filled.fill")
+                .foregroundColor(dailyMessageCount >= FREE_DAILY_LIMIT ? AppTheme.destructive : AppTheme.accent)
+                .symbolEffect(.pulse)
+                .font(.system(size: 14))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(FREE_DAILY_LIMIT - dailyMessageCount) left")
+                    .font(.system(size: 12, weight: .medium))
+
+                if dailyMessageCount >= FREE_DAILY_LIMIT {
+                    Text("Resets in \(timeUntilResetText())")
+                        .font(.system(size: 10))
                 }
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .padding(.horizontal, 16)
-            .background(
-                ZStack {
-                    // Arkaplan gradyanı
-                    LinearGradient(
-                        colors: [
-                            Color.purple.opacity(0.9),
-                            Color.blue.opacity(0.9)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    
-                    // Üst ksımdaki parlak çizgi
-                    LinearGradient(
-                        colors: [
-                            .white.opacity(0.3),
-                            .white.opacity(0.1)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 1)
-                    .frame(maxHeight: .infinity, alignment: .top)
-                }
-            )
-            .clipShape(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-            .shadow(
-                color: .black.opacity(0.1),
-                radius: 8,
-                x: 0,
-                y: 2
-            )
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .foregroundColor(dailyMessageCount >= FREE_DAILY_LIMIT ? AppTheme.destructive : AppTheme.accent)
         }
-        .transition(.move(edge: .top).combined(with: .opacity))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(AppTheme.controlBackground)
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(AppTheme.outline))
+    }
+
+    private func timeUntilResetText() -> String {
+        let now = Date()
+        let resetTime = lastMessageDate.addingTimeInterval(24 * 60 * 60)
+        let components = Calendar.current.dateComponents([.hour, .minute], from: now, to: resetTime)
+
+        guard let hours = components.hour, let minutes = components.minute else {
+            return "0m"
+        }
+
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        }
+        return "\(minutes)m"
     }
 }
 
@@ -841,8 +870,9 @@ struct MessagesView: View {
                             .id("keyboard")
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
+                .padding(.horizontal, 18)
+                .padding(.top, 24)
+                .padding(.bottom, 12)
                 .onChange(of: messages.count) { oldCount, newCount in
                     withAnimation {
                         if let lastMessage = messages.last {
@@ -871,7 +901,16 @@ struct MessagesView: View {
                     }
                 }
             }
-            .background(Color(.systemGroupedBackground))
+            .background(
+                LinearGradient(
+                    colors: [
+                        AppTheme.background.opacity(0.6),
+                        AppTheme.secondaryBackground.opacity(0.8)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .scrollDismissesKeyboard(.interactively)
             .contentShape(Rectangle())
             .onTapGesture {

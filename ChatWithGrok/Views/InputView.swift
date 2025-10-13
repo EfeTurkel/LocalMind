@@ -24,36 +24,38 @@ struct InputView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 8) {
             // Öneriler
             if showSuggestions && !currentInput.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         ForEach(filteredSuggestions) { suggestion in
                             SuggestionButton(suggestion: suggestion) {
                                 currentInput = suggestion.text + " "
                             }
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal, 20)
                 }
-                .frame(height: 40)
-                .background(Color(.systemGray6).opacity(0.5))
+                .frame(height: 44)
+                .background(AppTheme.secondaryBackground)
+                .clipShape(Capsule())
+                .padding(.horizontal)
             }
             
             // Mesaj girişi
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 if isFocused {
                     Button(action: {
                         currentInput = ""
                     }) {
                         Image(systemName: "trash")
                             .font(.system(size: 20))
-                            .foregroundColor(.red)
+                            .foregroundColor(AppTheme.destructive)
                             .frame(width: 30, height: 30)
                             .background(
                                 Circle()
-                                    .fill(Color.red.opacity(0.1))
+                                    .fill(AppTheme.destructive.opacity(0.12))
                             )
                     }
                     .transition(.scale.combined(with: .opacity))
@@ -61,9 +63,14 @@ struct InputView: View {
                 
                 TextField("Ask anything...", text: $currentInput, axis: .vertical)
                     .focused($isFocused)
-                    .padding(12)
-                    .background(colorScheme == .light ? Color(.systemGray5) : Color(.systemGray6))
-                    .cornerRadius(24)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 14)
+                    .background(AppTheme.elevatedBackground)
+                    .cornerRadius(AppTheme.cornerRadius)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                            .stroke(AppTheme.outline)
+                    )
                     .lineLimit(5) // Maksimum 5 satır göster
                     .onChange(of: currentInput) { oldValue, newValue in
                         withAnimation {
@@ -72,14 +79,24 @@ struct InputView: View {
                     }
                 
                 Button(action: onSend) {
-                    Image(systemName: isLoading ? "clock.fill" : "arrow.up.circle.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(dailyMessageCount >= FREE_DAILY_LIMIT ? .orange : .blue)
+                    Image(systemName: isLoading ? "hourglass" : "paperplane.fill")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(dailyMessageCount >= FREE_DAILY_LIMIT ? AppTheme.destructive : AppTheme.accent)
                         .symbolEffect(.bounce, value: shouldBounce)
                 }
                 .disabled(currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.vertical)
+            .background(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
+                    .fill(AppTheme.secondaryBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
+                            .stroke(AppTheme.outline)
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.25), radius: 20, x: 0, y: 18)
             .animation(.easeInOut, value: isFocused)
         }
         .onAppear {
@@ -114,13 +131,14 @@ struct SuggestionButton: View {
                 Text(suggestion.text)
                     .font(.subheadline)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(AppTheme.chipBackground)
+            .overlay(
                 Capsule()
-                    .fill(Color(.systemGray5))
+                    .stroke(AppTheme.chipBorder, lineWidth: 1)
             )
         }
-        .foregroundColor(.primary)
+        .foregroundColor(AppTheme.textPrimary)
     }
 } 

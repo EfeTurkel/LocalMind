@@ -1,0 +1,8 @@
+A1E8A27C2E5E42DF00E6C6B6 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+A1E8A27D2E5E42DF00E6C6B6 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E8A27C2E5E42DF00E6C6B6 /* SidebarView.swift */; };
+            children = (
+                A1E8A27C2E5E42DF00E6C6B6 /* SidebarView.swift */,
+            );
+            files = (
+                A1E8A27D2E5E42DF00E6C6B6 /* SidebarView.swift in Sources */,
+            );

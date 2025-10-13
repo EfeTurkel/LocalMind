@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1E8A27D2E5E42DF00E6C6B6 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E8A27C2E5E42DF00E6C6B6 /* SidebarView.swift */; };
+		A1E8A2812E5E43F300E6C6B6 /* BannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E8A2802E5E43F300E6C6B6 /* BannerView.swift */; };
 		F7CD8ADD2CDE83DD004C5DDB /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = F7CD8ADC2CDE83DD004C5DDB /* GoogleGenerativeAI */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +30,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1E8A27C2E5E42DF00E6C6B6 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
+		A1E8A2802E5E43F300E6C6B6 /* BannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BannerView.swift; sourceTree = "<group>"; };
 		F74E6FA72CD7A8B900857962 /* ChatWithGrok.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ChatWithGrok.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F74E6FB72CD7A8BB00857962 /* ChatWithGrokTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChatWithGrokTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F74E6FC12CD7A8BB00857962 /* ChatWithGrokUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ChatWithGrokUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -84,6 +88,8 @@
 				F74E6FBA2CD7A8BB00857962 /* ChatWithGrokTests */,
 				F74E6FC42CD7A8BB00857962 /* ChatWithGrokUITests */,
 				F74E6FA82CD7A8B900857962 /* Products */,
+				A1E8A27C2E5E42DF00E6C6B6 /* SidebarView.swift */,
+				A1E8A2802E5E43F300E6C6B6 /* BannerView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -259,6 +265,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1E8A27D2E5E42DF00E6C6B6 /* SidebarView.swift in Sources */,
+				A1E8A2812E5E43F300E6C6B6 /* BannerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

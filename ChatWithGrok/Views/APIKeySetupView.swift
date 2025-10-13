@@ -153,7 +153,8 @@ struct APIKeySetupView: View {
                     // Instructions
                     VStack(alignment: .leading, spacing: 12) {
                         Text("How to get an API key:")
-                            .font(.headline)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
                             .padding(.horizontal)
                         
                         switch selectedProvider {
@@ -179,24 +180,27 @@ struct APIKeySetupView: View {
                             instructionText("4. Copy your key")
                         }
                     }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(.systemGroupedBackground))
+                    .padding(18)
+                    .background(AppTheme.secondaryBackground.opacity(0.95))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                            .stroke(AppTheme.outline)
                     )
+                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
                     .padding(.horizontal)
                     
                     // Save Button
                     Button(action: saveAPIKey) {
                         Text("Save & Continue")
-                            .fontWeight(.bold)
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding()
+                            .padding(.vertical, 14)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(tempAPIKey.isEmpty ? Color.gray : Color.blue)
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                    .fill(tempAPIKey.isEmpty ? AppTheme.outline : AppTheme.accent)
                             )
+                            .shadow(color: AppTheme.accent.opacity(tempAPIKey.isEmpty ? 0 : 0.25), radius: tempAPIKey.isEmpty ? 0 : 18, x: 0, y: 12)
                     }
                     .disabled(tempAPIKey.isEmpty)
                     .padding(.horizontal)
@@ -209,8 +213,9 @@ struct APIKeySetupView: View {
                         generator.notificationOccurred(.success)
                     }) {
                         Text("Continue without API key (Demo Mode)")
-                            .font(.footnote)
-                            .foregroundColor(.blue)
+                            .font(.system(size: 13))
+                            .foregroundColor(AppTheme.textSecondary)
+                            .underline()
                     }
                     .padding(.bottom, 8)
                 }
@@ -233,11 +238,11 @@ struct APIKeySetupView: View {
     private func instructionText(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.system(size: 14))
+                .foregroundColor(AppTheme.success)
+                .font(.system(size: 15, weight: .semibold))
             Text(text)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.system(size: 14))
+                .foregroundColor(AppTheme.textSecondary)
             Spacer()
         }
         .padding(.horizontal)
@@ -364,8 +369,8 @@ struct ModelCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(model.name)
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
                         
                         Spacer()
                         
@@ -373,27 +378,25 @@ struct ModelCard: View {
                     }
                     
                     Text(model.description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundColor(AppTheme.textSecondary)
                         .multilineTextAlignment(.leading)
                 }
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.blue)
-                        .font(.title3)
+                        .foregroundColor(AppTheme.accent)
+                        .font(.system(size: 20, weight: .semibold))
                 }
             }
             .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: isSelected ? .blue.opacity(0.3) : .clear, radius: 8)
-            )
+            .background(AppTheme.secondaryBackground.opacity(0.95))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.blue : Color.gray.opacity(0.2), lineWidth: isSelected ? 2 : 1)
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .stroke(isSelected ? AppTheme.accent.opacity(0.7) : AppTheme.outline, lineWidth: isSelected ? 2 : 1)
             )
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+            .shadow(color: Color.black.opacity(isSelected ? 0.25 : 0.12), radius: isSelected ? 18 : 10, x: 0, y: 12)
         }
         .buttonStyle(PlainButtonStyle())
         .padding(.horizontal)

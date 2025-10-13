@@ -6,79 +6,66 @@ struct ProfileView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
+            Group {
                 if let profile = try? JSONDecoder().decode(UserProfile.self, from: userProfileData) {
-                    Form {
-                        Section(header: Text("General")) {
-                            HStack {
-                                Text("Total Prompts:")
-                                Spacer()
-                                Text("\(profile.totalPrompts)")
-                            }
-                            
-                            HStack {
-                                Text("Average Prompts per Day:")
-                                Spacer()
-                                Text(String(format: "%.1f", profile.averagePromptsPerDay))
-                            }
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            statsCard(title: "Overview", items: [
+                                .metric(label: "Total Prompts", value: "\(profile.totalPrompts)"),
+                                .metric(label: "Avg Prompts / Day", value: String(format: "%.1f", profile.averagePromptsPerDay))
+                            ])
                             
                             if let mostActiveDay = profile.mostActiveDay {
-                                HStack {
-                                    Text("Most Active Day:")
-                                    Spacer()
-                                    Text("\(formatDate(dateString: mostActiveDay.date)) (\(mostActiveDay.count) prompts)")
-                                }
-                            }
-                        }
-                        
-                        Section(header: Text("AI Interaction")) {
-                            HStack {
-                                Text("Favorite AI Mode:")
-                                Spacer()
-                                Text(profile.favoriteAIMode.rawValue)
+                                statsCard(
+                                    title: "Most Active Day",
+                                    items: [.detail(label: formatDate(dateString: mostActiveDay.date), value: "\(mostActiveDay.count) prompts")]
+                                )
                             }
                             
-                            HStack {
-                                Text("Average Response Time:")
-                                Spacer()
-                                Text(String(format: "%.2f seconds", profile.averageResponseTime))
-                            }
+                            statsCard(title: "AI Interaction", items: [
+                                .metric(label: "Favorite Mode", value: profile.favoriteAIMode.rawValue),
+                                .metric(label: "Avg Response", value: String(format: "%.2f s", profile.averageResponseTime)),
+                                .metric(label: "Chars Sent", value: "\(profile.totalCharactersSent)"),
+                                .metric(label: "Chars Received", value: "\(profile.totalCharactersReceived)")
+                            ])
                             
-                            HStack {
-                                Text("Characters Sent:")
-                                Spacer()
-                                Text("\(profile.totalCharactersSent)")
-                            }
+                            statsCard(title: "Model Usage", items:
+                                profile.mostUsedAIModels
+                                    .sorted { $0.value > $1.value }
+                                    .map { .detail(label: $0.key, value: "\($0.value) sessions") }
+                            )
                             
-                            HStack {
-                                Text("Characters Received:")
-                                Spacer()
-                                Text("\(profile.totalCharactersReceived)")
-                            }
+                            statsCard(title: "Activity", items: [
+                                .detail(label: "Last Active", value: formatDate(date: profile.lastActive))
+                            ])
                         }
-                        
-                        Section(header: Text("AI Models Usage")) {
-                            ForEach(profile.mostUsedAIModels.sorted(by: { $0.value > $1.value }), id: \.key) { model, count in
-                                HStack {
-                                    Text(model)
-                                    Spacer()
-                                    Text("\(count) times")
-                                }
-                            }
-                        }
-                        
-                        Section(header: Text("Activity")) {
-                            HStack {
-                                Text("Last Active:")
-                                Spacer()
-                                Text(formatDate(date: profile.lastActive))
-                            }
-                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 24)
+                        .padding(.bottom, 32)
                     }
                 } else {
-                    Text("No profile data available.")
+                    VStack(spacing: 12) {
+                        Image(systemName: "person.crop.circle.badge.exclam")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppTheme.textSecondary)
+                        Text("No profile data available")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                        Text("Start chatting to see your stats appear here.")
+                            .font(.system(size: 14))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                    .padding(32)
                 }
             }
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.background, AppTheme.secondaryBackground],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            )
             .navigationTitle("User Statistics")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -86,11 +73,63 @@ struct ProfileView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(AppTheme.controlBackground)
+                    .foregroundColor(AppTheme.accent)
+                    .clipShape(Capsule())
                 }
             }
         }
     }
     
+    private func statsCard(title: String, items: [StatItem]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(AppTheme.textSecondary)
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    switch item {
+                    case .metric(let label, let value):
+                        HStack {
+                            Text(label)
+                                .foregroundColor(AppTheme.textSecondary)
+                            Spacer()
+                            Text(value)
+                                .foregroundColor(AppTheme.textPrimary)
+                                .fontWeight(.semibold)
+                        }
+                    case .detail(let label, let value):
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(label)
+                                .foregroundColor(AppTheme.textPrimary)
+                                .fontWeight(.semibold)
+                            Text(value)
+                                .foregroundColor(AppTheme.textSecondary)
+                                .font(.system(size: 13))
+                        }
+                    }
+                    if index != items.count - 1 {
+                        Divider().background(AppTheme.outline)
+                    }
+                }
+            }
+            .padding(18)
+            .background(AppTheme.secondaryBackground.opacity(0.95))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .stroke(AppTheme.outline)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+        }
+    }
+    
+    private enum StatItem {
+        case metric(label: String, value: String)
+        case detail(label: String, value: String)
+    }
+
     private func formatDate(dateString: String) -> String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"

@@ -4,20 +4,21 @@ struct SavedNotificationView: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
+                .foregroundColor(AppTheme.success)
                 .font(.system(size: 16, weight: .semibold))
             
             Text("Chat Saved")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.primary)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(AppTheme.textPrimary)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(
+        .background(AppTheme.secondaryBackground.opacity(0.95))
+        .overlay(
             Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(radius: 2)
+                .stroke(AppTheme.outline)
         )
+        .shadow(color: Color.black.opacity(0.2), radius: 12, x: 0, y: 8)
         .transition(.scale.combined(with: .opacity))
     }
 } 

@@ -6,34 +6,48 @@ struct LoadingView: View {
     
     var body: some View {
         HStack {
-            HStack(spacing: 4) {
-                Text("\(getModelName(selectedModel)) is thinking")
-                    .foregroundColor(.secondary)
-                
-                // Animasyonlu noktalar
-                ForEach(0..<3) { index in
+            HStack(spacing: 10) {
+                ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [.purple, .blue],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(width: 4, height: 4)
-                        .scaleEffect(dotCount == index ? 1.5 : 1)
-                        .animation(
-                            .easeInOut(duration: 0.3)
-                            .repeatForever()
-                            .delay(0.15 * Double(index)),
-                            value: dotCount
-                        )
+                        .fill(AppTheme.controlBackground)
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppTheme.accent)
+                        .symbolEffect(.pulse, options: .repeat(1))
+                }
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(getModelName(selectedModel))")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                    HStack(spacing: 4) {
+                        Text("is thinking")
+                            .font(.system(size: 13))
+                            .foregroundColor(AppTheme.textSecondary)
+                        ForEach(0..<3) { index in
+                            Circle()
+                                .fill(AppTheme.accent)
+                                .frame(width: 4, height: 4)
+                                .opacity(dotCount == index ? 1 : 0.3)
+                                .animation(
+                                    .easeInOut(duration: 0.45)
+                                        .repeatForever()
+                                        .delay(0.15 * Double(index)),
+                                    value: dotCount
+                                )
+                        }
+                    }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(colorScheme == .dark ? Color(.systemGray5) : Color(.systemGray6))
-            .cornerRadius(16)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .background(AppTheme.elevatedBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                    .stroke(AppTheme.outline)
+            )
+            .cornerRadius(AppTheme.cornerRadius)
             
             Spacer()
         }

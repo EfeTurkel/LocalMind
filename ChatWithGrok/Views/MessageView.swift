@@ -12,37 +12,45 @@ struct MessageView: View {
     @State private var showingSelectionToolbar = false
     
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 12) {
             if !message.isUser {
                 // Grok'un avatarı
                     Image(uiImage: loadAvatar())
                     .resizable()
-                    .frame(width: 40, height: 40)
+                    .frame(width: 44, height: 44)
                     .clipShape(Circle())
-                
+                    .overlay(
+                        Circle()
+                            .stroke(AppTheme.outline, lineWidth: 1)
+                    )
+
                 // Grok mesajları sola yaslanacak
                 VStack(alignment: .leading, spacing: 4) {
                     Text(selectedAIModel.capitalized)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
                     
                     if message.isLoading {
                         LoadingView(selectedModel: message.aiModel)
                     } else {
                         Text(attributedString)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .background(colorScheme == .dark ? Color(.systemGray5) : Color(.systemGray6))
-                            .foregroundColor(.primary)
-                            .cornerRadius(16)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 16)
+                            .background(AppTheme.elevatedBackground)
+                            .foregroundColor(AppTheme.textPrimary)
+                            .cornerRadius(AppTheme.cornerRadius)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                                    .stroke(AppTheme.outline)
+                            )
                             .textSelection(.enabled)
                             .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 520, alignment: .leading)
                             .gesture(longPressGesture)
                     }
                     
                     Text(formatDate(message.timestamp))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppTheme.subtleText)
                 }
                 
                 Spacer(minLength: 0)
@@ -52,40 +60,54 @@ struct MessageView: View {
                 
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(userName)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
                     
                     Text(attributedString)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .background(Color.blue)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 16)
+                        .background(AppTheme.accentGradient)
                         .foregroundColor(.white)
-                        .cornerRadius(16)
+                        .cornerRadius(AppTheme.cornerRadius)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                                .stroke(Color.white.opacity(0.2))
+                        )
                         .textSelection(.enabled)
                         .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 520, alignment: .trailing)
                         .gesture(longPressGesture)
                     
                     Text(formatDate(message.timestamp))
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(AppTheme.subtleText)
                 }
                 
                 // Kullanıcının avatarı
                 if let uiImage = loadUserPhoto() {
                     Image(uiImage: uiImage)
                         .resizable()
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
                         .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(AppTheme.outline, lineWidth: 1)
+                        )
                 } else {
                     Image(systemName: "person.circle.fill")
                         .resizable()
-                        .frame(width: 40, height: 40)
+                        .frame(width: 44, height: 44)
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .background(
+                            Circle()
+                                .fill(AppTheme.controlBackground)
+                        )
+                        .clipShape(Circle())
                 }
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
         .overlay(selectionToolbar)
     }
     
@@ -119,16 +141,16 @@ struct MessageView: View {
                         }
                     }) {
                         Image(systemName: "doc.on.doc")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
                     }
                     
                     Button(action: {
                         showingShareSheet = true
                     }) {
                         Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
                     }
                     
                     Button(action: {
@@ -138,8 +160,8 @@ struct MessageView: View {
                         }
                     }) {
                         Text("Select")
-                            .foregroundColor(.white)
-                            .fontWeight(.bold)
+                            .foregroundColor(AppTheme.textPrimary)
+                            .font(.system(size: 15, weight: .semibold))
                     }
                     
                     Button(action: {
@@ -147,15 +169,20 @@ struct MessageView: View {
                         showingSelectionToolbar = false
                     }) {
                         Text("Done")
-                            .foregroundColor(.white)
-                            .fontWeight(.bold)
+                            .foregroundColor(AppTheme.textPrimary)
+                            .font(.system(size: 15, weight: .semibold))
                     }
                 }
-                .padding()
-                .background(Color.blue)
-                .cornerRadius(12)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .background(AppTheme.elevatedBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
+                        .stroke(AppTheme.outline)
+                )
+                .cornerRadius(AppTheme.cornerRadius)
                 .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.bottom, 12)
             }
             .transition(.move(edge: .bottom))
             .animation(.easeInOut, value: showingSelectionToolbar)

@@ -12,112 +12,142 @@ struct ChatHistoryView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 0) {
                 if savedChats.isEmpty {
                     VStack(spacing: 24) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 48))
-                            .foregroundColor(.blue)
+                            .foregroundColor(AppTheme.accent)
                         
                         Text("No Chat History")
-                            .font(.title)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
                         
                         Text("Start chatting with the AI to see your chat history here.")
                             .font(.body)
                             .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(AppTheme.textSecondary)
                             .padding(.horizontal, 40)
+                            .padding(.bottom, 12)
                         
                         Button(action: {
                             dismiss()
                         }) {
                             Text("Start Chatting")
-                                .fontWeight(.bold)
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(.white)
-                                .padding()
                                 .frame(maxWidth: .infinity)
-                                .background(Color.blue)
-                                .cornerRadius(12)
+                                .padding(.vertical, 14)
+                                .background(AppTheme.accentGradient)
+                                .cornerRadius(AppTheme.cornerRadius)
+                                .shadow(color: AppTheme.accent.opacity(0.3), radius: 18, x: 0, y: 12)
                         }
                         .padding(.horizontal, 40)
                     }
                     .padding(.top, 100)
                 } else {
-                    List {
-                        ForEach(filteredChats().indices, id: \.self) { index in
-                            let chat = filteredChats()[index]
-                            let isPinned = self.isChatPinned(chat)
-                            
-                            Button(action: {
-                                loadChat(chat)
-                            }) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    if isPinned {
-                                        Label("Pinned", systemImage: "pin.fill")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                    }
-                                    
-                                    // İlk mesajı göster
-                                    if let firstMessage = chat.first {
-                                        Text(firstMessage.content)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                            .font(.headline)
-                                    }
-                                    
-                                    // Son mesajı göster
-                                    if let lastMessage = chat.last {
-                                        Text(lastMessage.content)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    
-                                    // Tarih ve saat bilgisini göster
-                                    if let lastMessage = chat.last {
-                                        HStack {
-                                            Text(formatDate(lastMessage.timestamp))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                            
-                                            Text(formatTime(lastMessage.timestamp))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                    }
-                                    
-                                    // Mesaj sayısını göster
-                                    Text("\(chat.count) messages")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .onLongPressGesture(minimumDuration: 0.5) {
-                                let generator = UIImpactFeedbackGenerator(style: .medium)
-                                generator.impactOccurred()
-                                pendingPinChat = chat
-                                showingPinAction = true
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive, action: {
-                                    withAnimation {
-                                        if let originalIndex = indexOfChat(chat) {
-                                            StorageManager.shared.deleteChat(at: originalIndex)
-                                            savedChats.remove(at: originalIndex)
-                                            refreshPinnedIdentifiers()
-                                        }
-                                    }
+                    VStack(spacing: 0) {
+                        List {
+                            ForEach(filteredChats().indices, id: \.self) { index in
+                                let chat = filteredChats()[index]
+                                let isPinned = self.isChatPinned(chat)
+                                
+                                Button(action: {
+                                    loadChat(chat)
                                 }) {
-                                    Label("Delete", systemImage: "trash")
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        if isPinned {
+                                            Label("Pinned", systemImage: "pin.fill")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 4)
+                                                .background(AppTheme.chipBackground)
+                                                .foregroundColor(AppTheme.accent)
+                                                .clipShape(Capsule())
+                                        }
+                                        
+                                        if let firstMessage = chat.first {
+                                            Text(firstMessage.content)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                        }
+                                        
+                                        if let lastMessage = chat.last {
+                                            Text(lastMessage.content)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                                .foregroundColor(AppTheme.textSecondary)
+                                        }
+                                        
+                                        if let lastMessage = chat.last {
+                                            HStack {
+                                                Text(formatDate(lastMessage.timestamp))
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(AppTheme.subtleText)
+                                                
+                                                Text(formatTime(lastMessage.timestamp))
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(AppTheme.subtleText)
+                                            }
+                                        }
+                                        
+                                        Text("\(chat.count) messages")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                    }
+                                }
+                                .listRowBackground(EmptyView())
+                                .listRowSeparator(.hidden)
+                                .onLongPressGesture(minimumDuration: 0.5) {
+                                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                                    generator.impactOccurred()
+                                    pendingPinChat = chat
+                                    showingPinAction = true
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive, action: {
+                                        withAnimation {
+                                            if let originalIndex = indexOfChat(chat) {
+                                                StorageManager.shared.deleteChat(at: originalIndex)
+                                                savedChats.remove(at: originalIndex)
+                                                refreshPinnedIdentifiers()
+                                            }
+                                        }
+                                    }) {
+                                        Label("Delete", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
+                        .listStyle(PlainListStyle())
+                        .scrollContentBackground(.hidden)
                     }
-                    .listStyle(PlainListStyle())
+                    .background(
+                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
+                            .fill(AppTheme.secondaryBackground.opacity(0.85))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
+                                    .stroke(AppTheme.outline)
+                            )
+                            .shadow(color: Color.black.opacity(0.2), radius: 22, x: 0, y: 16)
+                    )
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+            .background(
+                LinearGradient(
+                    colors: [
+                        AppTheme.background,
+                        AppTheme.secondaryBackground
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .navigationTitle("Chat History")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -125,10 +155,16 @@ struct ChatHistoryView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(AppTheme.controlBackground)
+                    .foregroundColor(AppTheme.accent)
+                    .clipShape(Capsule())
                 }
             }
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic))
         }
+        .tint(AppTheme.accent)
         .confirmationDialog("Chat Actions", isPresented: $showingPinAction, presenting: pendingPinChat) { chat in
             let isPinned = isChatPinned(chat)
             Button(isPinned ? "Unpin" : "Pin") {

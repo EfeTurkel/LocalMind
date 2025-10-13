@@ -25,189 +25,237 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationView {
-            Form {
+            List {
                 Section {
                     Button(action: { showingUpgradeView = true }) {
                         HStack {
                             Image(systemName: "hands.sparkles.fill")
-                                .font(.title2)
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.tint)
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(AppTheme.accent)
+                                .frame(width: 36, height: 36)
+                                .background(AppTheme.controlBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Daily Support")
-                                    .font(.headline)
-                                    .foregroundColor(systemColorScheme == .dark ? .white : .black)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
                                 
                                 Text("Tap once a day to help keep the app free")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(AppTheme.textSecondary)
                             }
                             
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(AppTheme.textSecondary)
                         }
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())
+                        .padding(.vertical, 12)
+                        .contentShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+                        .background(
+                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                .fill(AppTheme.secondaryBackground)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                        .stroke(AppTheme.outline)
+                                )
+                        )
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
-                
-                Section("Profile") {
-                    Button(action: {
-                        showingProfileSettings = true
-                    }) {
-                        HStack {
-                            Image(systemName: "person.circle")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Text("Profile")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    
-                    Button(action: {
-                        showingProfileView = true
-                    }) {
-                        HStack {
-                            Image(systemName: "chart.bar.fill")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Text("User Statistics")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-                
-                Section("API Keys") {
-                    Button(action: {
-                        showingAdvancedSettings = true
-                    }) {
-                        HStack {
-                            Image(systemName: "key.fill")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.tint)
-                            Text("Manage API Keys")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-                
-                Section("AI Model") {
-                    Button(action: {
-                        showingAIModelSelector = true
-                    }) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Selected Model")
-                                    .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                                Text(getModelDisplayName(selectedAIModel))
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button(action: {
-                        showingPersonalizationView = true
-                    }) {
-                        HStack {
-                            Image(systemName: "paintpalette")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.tint)
-                            Text("Customize AI Model")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                    
-                    // Daily limit UI kaldırıldı; tüm özellikler ücretsiz
-                }
-                
-                Section("Appearance") {
-                    Picker("Theme", selection: $preferredColorScheme) {
-                        Text("System").tag(0)
-                        Text("Light").tag(1)
-                        Text("Dark").tag(2)
-                    }
-                    
-                    Toggle(isOn: $isIncognitoMode) {
-                        Label {
-                            Text("Incognito Mode")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                        } icon: {
-                            Image(systemName: "eye.slash")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                        }
-                    }
-                    
-                    if isIncognitoMode {
-                        Text("Your messages will not be saved.")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
+                .listRowBackground(Color.clear)
 
-                    Toggle(isOn: $minimalHome) {
-                        Label {
-                            Text("Minimal Home")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                        } icon: {
-                            Image(systemName: "rectangle.topthird.inset.filled")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
+                Section {
+                    Text("Profile")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                    profileCard {
+                        Button(action: {
+                            showingProfileSettings = true
+                        }) {
+                            HStack {
+                                Image(systemName: "person.circle")
+                                    .foregroundColor(AppTheme.accent)
+                                    .frame(width: 28, height: 28)
+                                Text("Profile")
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Divider().background(AppTheme.outline)
+                        
+                        Button(action: {
+                            showingProfileView = true
+                        }) {
+                            HStack {
+                                Image(systemName: "chart.bar.fill")
+                                    .foregroundColor(AppTheme.accent)
+                                    .frame(width: 28, height: 28)
+                                Text("User Statistics")
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
                         }
                     }
-                    Text("Show only the top and bottom bars on the home screen.")
-                        .font(.caption)
-                        .foregroundColor(.gray)
                 }
+                .listRowBackground(Color.clear)
                 
-                Section("About") {
-                    HStack {
-                        Text("App Name")
-                            .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                        Spacer()
-                        Text("LockMind")
-                            .foregroundColor(.gray)
-                    }
-                    
-                    Button(action: {
-                        showingCreatorInfo = true
-                    }) {
-                        HStack {
-                            Text("Creator")
-                                .foregroundColor(systemColorScheme == .dark ? .white : .black)
-                            Spacer()
-                            Text("Efe Türkel")
-                                .foregroundColor(.gray)
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                Section {
+                    Text("API Keys")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                    profileCard {
+                        Button(action: {
+                            showingAdvancedSettings = true
+                        }) {
+                            HStack {
+                                Image(systemName: "key.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(AppTheme.accent)
+                                    .frame(width: 28, height: 28)
+                                Text("Manage API Keys")
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
                         }
                     }
                 }
+                .listRowBackground(Color.clear)
+                
+                Section {
+                    Text("AI Model")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                    profileCard {
+                        Button(action: {
+                            showingAIModelSelector = true
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Selected Model")
+                                        .foregroundColor(AppTheme.textPrimary)
+                                    Text(getModelDisplayName(selectedAIModel))
+                                        .font(.system(size: 13))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Divider().background(AppTheme.outline)
+                        
+                        Button(action: {
+                            showingPersonalizationView = true
+                        }) {
+                            HStack {
+                                Image(systemName: "paintpalette")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(AppTheme.accent)
+                                    .frame(width: 28, height: 28)
+                                Text("Customize AI Model")
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+                        
+                        // Daily limit UI kaldırıldı; tüm özellikler ücretsiz
+                    }
+                }
+                .listRowBackground(Color.clear)
+
+                Section {
+                    Text("Appearance")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                    profileCard {
+                        Picker("Theme", selection: $preferredColorScheme) {
+                            Text("System").tag(0)
+                            Text("Light").tag(1)
+                            Text("Dark").tag(2)
+                        }
+                     
+                        Divider().background(AppTheme.outline)
+
+                        Toggle(isOn: $isIncognitoMode) {
+                            Label {
+                                Text("Incognito Mode")
+                                    .foregroundColor(AppTheme.textPrimary)
+                            } icon: {
+                                Image(systemName: "eye.slash")
+                                    .foregroundColor(AppTheme.accent)
+                            }
+                        }
+                        
+                        if isIncognitoMode {
+                            Text("Your messages will not be saved.")
+                                .font(.system(size: 13))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+
+                        Divider().background(AppTheme.outline)
+
+                        Toggle(isOn: $minimalHome) {
+                            Label {
+                                Text("Minimal Home")
+                                    .foregroundColor(AppTheme.textPrimary)
+                            } icon: {
+                                Image(systemName: "rectangle.topthird.inset.filled")
+                                    .foregroundColor(AppTheme.accent)
+                            }
+                        }
+                        Text("Show only the top and bottom bars on the home screen.")
+                            .font(.system(size: 13))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                }
+                .listRowBackground(Color.clear)
+
+                Section {
+                    Text("About")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                    profileCard {
+                        HStack {
+                            Text("App Name")
+                                .foregroundColor(AppTheme.textPrimary)
+                            Spacer()
+                            Text("LockMind")
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                        Divider().background(AppTheme.outline)
+                        Button(action: {
+                            showingCreatorInfo = true
+                        }) {
+                            HStack {
+                                Text("Creator")
+                                    .foregroundColor(AppTheme.textPrimary)
+                                Spacer()
+                                Text("Efe Türkel")
+                                    .foregroundColor(AppTheme.textSecondary)
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(AppTheme.textSecondary)
+                            }
+                        }
+                    }
+                }
+                .listRowBackground(Color.clear)
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -216,10 +264,23 @@ struct SettingsView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(AppTheme.controlBackground)
+                    .foregroundColor(AppTheme.accent)
+                    .clipShape(Capsule())
                 }
             }
-            .tint(.blue)
+            .tint(AppTheme.accent)
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(
+                LinearGradient(
+                    colors: [AppTheme.background, AppTheme.secondaryBackground],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
             .sheet(isPresented: $showingPersonalizationView) {
                 PersonalizationView(avatar: $avatar)
             }
@@ -326,6 +387,20 @@ struct SettingsView: View {
         default:
             return modelId
         }
+    }
+
+    private func profileCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            content()
+        }
+        .padding(18)
+        .background(AppTheme.secondaryBackground.opacity(0.92))
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .stroke(AppTheme.outline)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 20, x: 0, y: 14)
     }
 }
 
@@ -450,13 +525,14 @@ struct AIModelSelectorView: View {
                         if models.isEmpty {
                             VStack(spacing: 12) {
                                 Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 28))
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 28, weight: .semibold))
+                                    .foregroundColor(AppTheme.textSecondary)
                                 Text("No models found")
-                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
                                 Text("Try a different provider or search term")
-                                    .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(AppTheme.textSecondary)
                             }
                             .padding(.vertical, 24)
                         } else {
@@ -480,12 +556,16 @@ struct AIModelSelectorView: View {
 
                     Button(action: { Task { await loadAllProviders() } }) {
                         Text("Refresh")
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .padding()
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
                             .frame(maxWidth: .infinity)
-                            .background(Color.accentColor)
-                            .cornerRadius(12)
+                            .padding(.vertical, 12)
+                            .background(AppTheme.controlBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                                    .stroke(AppTheme.outline)
+                            )
                     }
                     .padding(.horizontal)
                     .padding(.vertical)
@@ -561,7 +641,7 @@ struct DetailedModelCard: View {
                 HStack(alignment: .firstTextBaseline) {
                     Text(model.name)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
+                        .foregroundColor(AppTheme.textPrimary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -570,21 +650,21 @@ struct DetailedModelCard: View {
                     
                     Text(model.tier)
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(AppTheme.textSecondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Capsule().fill(Color(.secondarySystemBackground)))
+                        .background(Capsule().fill(AppTheme.controlBackground))
                 }
                 
                 Text(model.description)
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(AppTheme.textSecondary)
                     .lineLimit(2)
             }
             
             if isSelected {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.tint)
+                    .foregroundColor(AppTheme.accent)
                     .font(.system(size: 18, weight: .semibold))
             }
         }
