@@ -337,7 +337,8 @@ struct ContentView: View {
                         currentInput: $currentInput,
                         isLoading: $isLoading,
                         keyboardHeight: $keyboardHeight,
-                        selectedAIModel: $selectedAIModel
+                        selectedAIModel: $selectedAIModel,
+                        showingModeSelector: $showingModeSelector
                     )
                     .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580, maxHeight: .infinity)
                 }
@@ -843,13 +844,14 @@ struct MessagesView: View {
     @Binding var isLoading: Bool
     @Binding var keyboardHeight: CGFloat
     @Binding var selectedAIModel: String
+    @Binding var showingModeSelector: Bool
     
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
                     if messages.isEmpty {
-                        WelcomeView(messages: $messages, currentInput: $currentInput)
+                        WelcomeView(messages: $messages, currentInput: $currentInput, showingModeSelector: $showingModeSelector)
                     } else {
                         ForEach(messages) { message in
                             if message.isLoading {

@@ -70,38 +70,13 @@ struct SettingsView: View {
                     Text("Profile")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(AppTheme.textSecondary)
-                    profileCard {
-                        Button(action: {
+                    profileCard(spacing: 0) {
+                        SettingsCardRow(icon: "person.circle", title: "Profile") {
                             showingProfileSettings = true
-                        }) {
-                            HStack {
-                                Image(systemName: "person.circle")
-                                    .foregroundColor(AppTheme.accent)
-                                    .frame(width: 28, height: 28)
-                                Text("Profile")
-                                    .foregroundColor(AppTheme.textPrimary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(AppTheme.textSecondary)
-                            }
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        
                         Divider().background(AppTheme.outline)
-                        
-                        Button(action: {
+                        SettingsCardRow(icon: "chart.bar.fill", title: "User Statistics") {
                             showingProfileView = true
-                        }) {
-                            HStack {
-                                Image(systemName: "chart.bar.fill")
-                                    .foregroundColor(AppTheme.accent)
-                                    .frame(width: 28, height: 28)
-                                Text("User Statistics")
-                                    .foregroundColor(AppTheme.textPrimary)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(AppTheme.textSecondary)
-                            }
                         }
                     }
                 }
@@ -389,8 +364,8 @@ struct SettingsView: View {
         }
     }
 
-    private func profileCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private func profileCard<Content: View>(spacing: CGFloat = 14, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: spacing) {
             content()
         }
         .padding(18)
@@ -401,6 +376,34 @@ struct SettingsView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
         .shadow(color: Color.black.opacity(0.18), radius: 20, x: 0, y: 14)
+    }
+}
+
+private struct SettingsCardRow: View {
+    let icon: String
+    let title: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(AppTheme.accent)
+                    .frame(width: 28, height: 28)
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 }
 
