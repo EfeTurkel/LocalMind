@@ -69,7 +69,7 @@ class ClaudeService {
             
             // Extract text from content array
             if let firstContent = claudeResponse.content.first {
-                return firstContent.text
+                return cleanText(firstContent.text)
             }
             
             return "No response"
@@ -93,6 +93,10 @@ class ClaudeService {
         
         \(mode.systemPrompt)
         """
+    }
+    
+    private func cleanText(_ text: String) -> String {
+        return text.replacingOccurrences(of: "**", with: "")
     }
 }
 

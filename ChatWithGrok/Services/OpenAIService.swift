@@ -31,7 +31,8 @@ class OpenAIService {
         }
         
         let chatResponse = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
-        return chatResponse.choices.first?.message.content ?? "No response"
+        let rawContent = chatResponse.choices.first?.message.content ?? "No response"
+        return cleanText(rawContent)
     }
     
     private func getSystemPrompt() -> String {
@@ -48,6 +49,10 @@ class OpenAIService {
         
         \(mode.systemPrompt)
         """
+    }
+    
+    private func cleanText(_ text: String) -> String {
+        return text.replacingOccurrences(of: "**", with: "")
     }
 }
 

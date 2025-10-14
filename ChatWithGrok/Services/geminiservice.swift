@@ -47,7 +47,8 @@ class GeminiService {
             }
             
             let response = try await chat?.sendMessage(message)
-            return response?.text ?? "No response received"
+            let rawContent = response?.text ?? "No response received"
+            return cleanText(rawContent)
         } catch {
             print("Error: \(error)")
             throw error
@@ -92,5 +93,9 @@ class GeminiService {
         let mode = AIMode(rawValue: modeRaw) ?? .general
         let base = "You are an AI assistant. Your avatar is \(avatar). Your personality is \(personality).\n\nCustom instructions: \(customInstructions)\n\n\(mode.systemPrompt)"
         return base
+    }
+    
+    private func cleanText(_ text: String) -> String {
+        return text.replacingOccurrences(of: "**", with: "")
     }
 }

@@ -59,7 +59,8 @@ class GrokService {
             }
             
             let chatResponse = try JSONDecoder().decode(ChatResponse.self, from: data)
-            return chatResponse.choices.first?.message.content ?? "No response"
+            let rawContent = chatResponse.choices.first?.message.content ?? "No response"
+            return cleanText(rawContent)
         } catch {
             print("Error: \(error.localizedDescription)")
             throw error
@@ -97,6 +98,10 @@ class GrokService {
         default:
             return "Unknown"
         }
+    }
+    
+    private func cleanText(_ text: String) -> String {
+        return text.replacingOccurrences(of: "**", with: "")
     }
 }
 

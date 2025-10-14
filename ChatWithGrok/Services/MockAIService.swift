@@ -15,7 +15,12 @@ class MockAIService {
             "\n\nTip: Go to Settings → API Keys to enable real responses.",
             "\n\nNote: Messages are generated locally in demo mode."
         ].randomElement() ?? ""
-        return (canned.randomElement() ?? "Hello from demo mode!") + suffix
+        let rawContent = (canned.randomElement() ?? "Hello from demo mode!") + suffix
+        return cleanText(rawContent)
+    }
+    
+    private func cleanText(_ text: String) -> String {
+        return text.replacingOccurrences(of: "**", with: "")
     }
 }
 
