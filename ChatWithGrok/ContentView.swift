@@ -43,6 +43,9 @@ struct ContentView: View {
     @State private var sidebarSearchText: String = ""
     @State private var sidebarSavedChats: [[Message]] = []
     @State private var sidebarPinnedIdentifiers: Set<Double> = []
+    // Banner state for replies arriving while on home
+    @State private var homeNewMessageAvailable: Bool = false
+    @State private var pendingChatForHome: [Message] = []
     
     let FREE_DAILY_LIMIT = Int.max
 
@@ -89,11 +92,52 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack(alignment: .leading) {
+                // Status bar background
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: 0) // remove extra top filler entirely
+                    Spacer()
+                }
+                .zIndex(0)
+                
                 mainBackground
                 chatLayer
                 sidebarLayer
             }
             .contentShape(Rectangle())
+            // Global top-left sidebar toggle button (pinned to true safe area)
+            .overlay(alignment: .topLeading) {
+                if !isSidebarOpen {
+                    GeometryReader { geometry in
+                        Button(action: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                isSidebarOpen = true
+                            }
+                        }) {
+                            ZStack {
+                                Circle()
+                                    .fill(AppTheme.controlBackground.opacity(0.7))
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                                
+                                Image(systemName: "sidebar.leading")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                            }
+                            .frame(width: 46, height: 46)
+                            .overlay(
+                                Circle()
+                                    .stroke(AppTheme.outline.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+                        }
+                        .position(
+                            x: 18 + 23,
+                            y: geometry.safeAreaInsets.top + 23
+                        )
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                }
+            }
             .overlay(alignment: .leading) {
                 if isSidebarOpen {
                     HStack(spacing: 0) {
@@ -145,6 +189,7 @@ struct ContentView: View {
             }
             .preferredColorScheme(activeColorScheme)
         }
+        .statusBarStyle(activeColorScheme == .dark ? .lightContent : .darkContent)
         .onChange(of: systemColorScheme) { oldValue, newValue in
             if preferredColorScheme == 0 {
                 withAnimation {
@@ -171,6 +216,9 @@ struct ContentView: View {
             
             // Check if user has set up API key
             hasAPIKey = !apiKey.isEmpty || !openAIAPIKey.isEmpty || !claudeAPIKey.isEmpty || !(UserDefaults.standard.string(forKey: "geminiAPIKey") ?? "").isEmpty
+            
+            // Configure status bar appearance
+            configureStatusBar()
             
             // Klavye bildirimlerini dinle
             NotificationCenter.default.addObserver(
@@ -206,10 +254,18 @@ struct ContentView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 checkAndResetDailyLimit()
+                configureStatusBar()
             }
+        }
+        .onChange(of: activeColorScheme) { _, _ in
+            configureStatusBar()
         }
         .onChange(of: messages.count) { _, _ in
             refreshSidebarChats()
+            if !messages.isEmpty && homeNewMessageAvailable {
+                homeNewMessageAvailable = false
+                pendingChatForHome.removeAll()
+            }
         }
     }
     
@@ -226,6 +282,24 @@ struct ContentView: View {
                 if timeSinceLimit >= 24 {
                     dailyMessageCount = 0
                     lastMessageDate = now
+                }
+            }
+        }
+    }
+    
+    private func configureStatusBar() {
+        DispatchQueue.main.async {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+            
+            // Set status bar appearance based on color scheme
+            let isDark = activeColorScheme == .dark
+            
+            windowScene.windows.forEach { window in
+                // Update window appearance to match our color scheme
+                if preferredColorScheme == 0 {
+                    window.overrideUserInterfaceStyle = .unspecified
+                } else {
+                    window.overrideUserInterfaceStyle = isDark ? .dark : .light
                 }
             }
         }
@@ -315,6 +389,7 @@ struct ContentView: View {
         .zIndex(isSidebarOpen ? 2 : 0)
         .accessibilityHidden(false)
         .background(AppTheme.background)
+        .ignoresSafeArea(edges: .bottom)
         .overlay(alignment: .trailing) {
             if isSidebarOpen {
                 Rectangle()
@@ -348,13 +423,43 @@ struct ContentView: View {
             SimpleFluidInput(
                 currentInput: $currentInput,
                 onSend: sendMessage,
-                isLoading: isLoading
+                isLoading: isLoading,
+                keyboardHeight: $keyboardHeight,
+                messages: $messages,
+                selectedAIMode: $selectedAIMode
             )
             .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
         }
         .background(AppTheme.background)
         .clipShape(RoundedRectangle(cornerRadius: 0, style: .continuous))
         .shadow(color: Color.clear, radius: 0)
+        .overlay(alignment: .top) {
+            if messages.isEmpty && homeNewMessageAvailable {
+                HStack(spacing: 10) {
+                    Image(systemName: "bolt.horizontal.circle.fill")
+                        .foregroundColor(AppTheme.accent)
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("New message arrived. Tap to view")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(AppTheme.controlBackground)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(AppTheme.outline))
+                .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+                .padding(.top, 18)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        messages = pendingChatForHome
+                        pendingChatForHome.removeAll()
+                        homeNewMessageAvailable = false
+                    }
+                }
+            }
+        }
         .overlay(
             Group {
                 if isSidebarOpen {
@@ -365,38 +470,34 @@ struct ContentView: View {
                 }
             }
         )
-        .overlay(alignment: .topLeading) {
-            if !isSidebarOpen {
-                Button(action: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        isSidebarOpen = true
-                    }
-                }) {
-                    ZStack {
-                        Circle()
-                            .fill(AppTheme.controlBackground.opacity(0.7))
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                        
-                        Image(systemName: "line.horizontal.3")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(AppTheme.textPrimary)
-                    }
-                    .frame(width: 46, height: 46)
-                    .overlay(
-                        Circle()
-                            .stroke(AppTheme.outline.opacity(0.3), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
-                }
-                .padding(.leading, 18)
-                .padding(.top, 18)
-                .transition(.opacity.combined(with: .scale))
-            }
-        }
+        // Button moved to global overlay above; remove local overlay
         .padding(.bottom, keyboardPadding)
         .ignoresSafeArea(edges: .bottom)
         .zIndex(isSidebarOpen ? 1 : 2)
+        .gesture(
+            DragGesture(minimumDistance: 20, coordinateSpace: .local)
+                .onChanged { value in
+                    // Soldan sağa kaydırma hareketi - sadece ana sayfada ve sidebar kapalıyken
+                    if messages.isEmpty && !isSidebarOpen && value.translation.width > 0 && value.startLocation.x < 50 {
+                        // Gesture başlangıcı ekranın sol kenarından 50pt içindeyse
+                        if value.translation.width > 100 {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                isSidebarOpen = true
+                            }
+                        }
+                    }
+                }
+                .onEnded { value in
+                    // Hareket tamamlandığında sidebar'ı aç
+                    if messages.isEmpty && !isSidebarOpen && value.translation.width > 80 && value.startLocation.x < 50 {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            isSidebarOpen = true
+                        }
+                        let impact = UIImpactFeedbackGenerator(style: .medium)
+                        impact.impactOccurred()
+                    }
+                }
+        )
     }
     
     private func sendMessage() {
@@ -591,14 +692,27 @@ struct ContentView: View {
                     response = try await MockAIService.shared.sendMessage(userText, model: selectedAIModel, previousMessages: history)
                 }
                 await MainActor.run {
-                    if let index = messages.firstIndex(where: { $0.isLoading }) {
-                        messages.remove(at: index)
-                    }
-                    let botMessage = Message(content: response, isUser: false, aiModel: selectedAIModel)
-                    messages.append(botMessage)
-                    isLoading = false
-                    if !isIncognitoMode {
-                        StorageManager.shared.saveChat(messages)
+                    // If user returned home during generation, don't force open chat; show banner instead
+                    if messages.isEmpty {
+                        var transcript: [Message] = Array(history)
+                        transcript.append(Message(content: userText, isUser: true))
+                        transcript.append(Message(content: response, isUser: false, aiModel: selectedAIModel))
+                        pendingChatForHome = transcript
+                        homeNewMessageAvailable = true
+                        isLoading = false
+                        if !isIncognitoMode {
+                            StorageManager.shared.saveChat(transcript)
+                        }
+                    } else {
+                        if let index = messages.firstIndex(where: { $0.isLoading }) {
+                            messages.remove(at: index)
+                        }
+                        let botMessage = Message(content: response, isUser: false, aiModel: selectedAIModel)
+                        messages.append(botMessage)
+                        isLoading = false
+                        if !isIncognitoMode {
+                            StorageManager.shared.saveChat(messages)
+                        }
                     }
                     if hapticFeedbackEnabled {
                         let generator = UINotificationFeedbackGenerator()
@@ -855,102 +969,104 @@ struct MessagesView: View {
     @Binding var showingModeSelector: Bool
     
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    if messages.isEmpty {
-                        WelcomeView(messages: $messages, currentInput: $currentInput, showingModeSelector: $showingModeSelector)
-                    } else {
-                        ForEach(messages) { message in
-                            if message.isLoading {
-                                LoadingView(selectedModel: message.aiModel)
+        Group {
+            if messages.isEmpty {
+                WelcomeView(messages: $messages, currentInput: $currentInput, showingModeSelector: $showingModeSelector)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 12) {
+                            ForEach(messages) { message in
+                                if message.isLoading {
+                                    LoadingView(selectedModel: message.aiModel)
+                                } else {
+                                    MessageView(message: message)
+                                        .id(message.id)
+                                }
+                            }
+                            
+                            if isLoading && !messages.contains(where: { $0.isLoading }) {
+                                LoadingView(selectedModel: selectedAIModel)
+                                    .id("loading")
+                            }
+                            
+                            Color.clear
+                                .frame(height: keyboardHeight > 0 ? 8 : 0)
+                                .id("keyboard")
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.top, 24)
+                        .padding(.bottom, 12)
+                        .onChange(of: messages.count) { oldCount, newCount in
+                            withAnimation {
+                                if let lastMessage = messages.last {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
+                            }
+                        }
+                        .onChange(of: isLoading) { wasLoading, isNowLoading in
+                            if isNowLoading {
+                                withAnimation {
+                                    proxy.scrollTo("loading", anchor: .bottom)
+                                }
+                            }
+                        }
+                        .onChange(of: keyboardHeight) { oldValue, newValue in
+                            if newValue > 0 {
+                                withAnimation {
+                                    proxy.scrollTo("keyboard", anchor: .bottom)
+                                }
                             } else {
-                                MessageView(message: message)
-                                    .id(message.id)
-                            }
-                        }
-                        
-                        if isLoading && !messages.contains(where: { $0.isLoading }) {
-                            LoadingView(selectedModel: selectedAIModel)
-                                .id("loading")
-                        }
-                        
-                        Color.clear
-                            .frame(height: keyboardHeight > 0 ? 8 : 0)
-                            .id("keyboard")
-                    }
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 24)
-                .padding(.bottom, 12)
-                .onChange(of: messages.count) { oldCount, newCount in
-                    withAnimation {
-                        if let lastMessage = messages.last {
-                            proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                        }
-                    }
-                }
-                .onChange(of: isLoading) { wasLoading, isNowLoading in
-                    if isNowLoading {
-                        withAnimation {
-                            proxy.scrollTo("loading", anchor: .bottom)
-                        }
-                    }
-                }
-                .onChange(of: keyboardHeight) { oldValue, newValue in
-                    if newValue > 0 {
-                        withAnimation {
-                            proxy.scrollTo("keyboard", anchor: .bottom)
-                        }
-                    } else {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            if let lastMessage = messages.last {
-                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    if let lastMessage = messages.last {
+                                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                    }
+                                }
                             }
                         }
                     }
+                    .background(Color.clear)
+                    .scrollDismissesKeyboard(.interactively)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                     to: nil, from: nil, for: nil)
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { gesture in
+                                if gesture.translation.height > 30 {
+                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                                 to: nil, from: nil, for: nil)
+                                }
+                            }
+                            .onEnded { gesture in
+                                if gesture.translation.width > 100 && !messages.isEmpty { // Sağa kaydırma - Ana ekrana dön
+                                    withAnimation {
+                                        messages.removeAll()
+                                        let impact = UIImpactFeedbackGenerator(style: .medium)
+                                        impact.impactOccurred()
+                                    }
+                                } else if gesture.translation.width < -100 && messages.isEmpty { // Sola kaydırma - Chat ekranına geç
+                                    withAnimation {
+                                        messages = []
+                                        let impact = UIImpactFeedbackGenerator(style: .medium)
+                                        impact.impactOccurred()
+                                    }
+                                }
+                            }
+                    )
+                    .simultaneousGesture(
+                        DragGesture()
+                            .onChanged { gesture in
+                                if abs(gesture.translation.height) > 50 {
+                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                                 to: nil, from: nil, for: nil)
+                                }
+                            }
+                    )
                 }
             }
-            .background(Color.clear)
-            .scrollDismissesKeyboard(.interactively)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                             to: nil, from: nil, for: nil)
-            }
-            .gesture(
-                DragGesture()
-                    .onChanged { gesture in
-                        if gesture.translation.height > 30 {
-                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                                         to: nil, from: nil, for: nil)
-                        }
-                    }
-                    .onEnded { gesture in
-                        if gesture.translation.width > 100 && !messages.isEmpty { // Sağa kaydırma - Ana ekrana dön
-                            withAnimation {
-                                messages.removeAll()
-                                let impact = UIImpactFeedbackGenerator(style: .medium)
-                                impact.impactOccurred()
-                            }
-                        } else if gesture.translation.width < -100 && messages.isEmpty { // Sola kaydırma - Chat ekranına geç
-                            withAnimation {
-                                messages = []
-                                let impact = UIImpactFeedbackGenerator(style: .medium)
-                                impact.impactOccurred()
-                            }
-                        }
-                    }
-            )
-            .simultaneousGesture(
-                DragGesture()
-                    .onChanged { gesture in
-                        if abs(gesture.translation.height) > 50 {
-                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                                         to: nil, from: nil, for: nil)
-                        }
-                    }
-            )
         }
     }
 }
@@ -965,5 +1081,24 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return AppDelegate.orientationLock
+    }
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // Ensure status bar follows system appearance
+        return true
+    }
+}
+
+// Status Bar Style Controller
+class StatusBarStyleController: ObservableObject {
+    @Published var style: UIStatusBarStyle = .default
+    
+    static let shared = StatusBarStyleController()
+}
+
+extension View {
+    func statusBarStyle(_ style: UIStatusBarStyle) -> some View {
+        StatusBarStyleController.shared.style = style
+        return self
     }
 }

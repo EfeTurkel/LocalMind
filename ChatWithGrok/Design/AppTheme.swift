@@ -85,6 +85,12 @@ enum AppTheme {
 
     static let cornerRadius: CGFloat = 18
 
+    // Global animation styles inspired by iOS spring curves
+    static let springFast: Animation = .interactiveSpring(response: 0.28, dampingFraction: 0.82, blendDuration: 0.12)
+    static let springMedium: Animation = .interactiveSpring(response: 0.42, dampingFraction: 0.85, blendDuration: 0.18)
+    static let springSlow: Animation = .interactiveSpring(response: 0.6, dampingFraction: 0.88, blendDuration: 0.22)
+    static let easeEmphasized: Animation = .easeInOut(duration: 0.35)
+
     static var accentGradient: LinearGradient {
         LinearGradient(
             colors: [

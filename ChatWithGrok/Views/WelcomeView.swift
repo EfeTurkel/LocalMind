@@ -8,6 +8,7 @@ struct WelcomeView: View {
     @AppStorage("selectedAIMode") private var storedModeRaw: String = AIMode.general.rawValue
     @State private var animateCards = false
     @State private var animateHeader = false
+    private let uiScale: CGFloat = 0.92
     
     private let quickActions: [QuickActionItem] = [
         QuickActionItem(
@@ -54,23 +55,23 @@ struct WelcomeView: View {
     var body: some View {
         ZStack {
             modernBackground
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 32) {
-                    modernHeroSection
-                    modernQuickActionsGrid
-                    modernSuggestionsSection
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 40)
-                .padding(.bottom, 24)
-                .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 620)
+            VStack(spacing: 24) {
+                Spacer(minLength: 0)
+                modernHeroSection
+                modernQuickActionsGrid
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 20)
+            .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 620,
+                   maxHeight: .infinity,
+                   alignment: .center)
+            .scaleEffect(uiScale)
         }
         .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.1)) {
+            withAnimation(AppTheme.springSlow.delay(0.1)) {
                 animateHeader = true
             }
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.75).delay(0.2)) {
+            withAnimation(AppTheme.springSlow.delay(0.2)) {
                 animateCards = true
             }
         }
@@ -118,9 +119,9 @@ struct WelcomeView: View {
     private var modernHeroSection: some View {
         VStack(alignment: .leading, spacing: 24) {
             // Greeting
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text(getGreeting())
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [AppTheme.textPrimary, AppTheme.textPrimary.opacity(0.8)],
@@ -132,53 +133,103 @@ struct WelcomeView: View {
                     .offset(y: animateHeader ? 0 : 20)
                 
                 Text("What would you like to explore today?")
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundColor(AppTheme.textSecondary)
                     .opacity(animateHeader ? 1 : 0)
                     .offset(y: animateHeader ? 0 : 20)
             }
             
-            // Active Mode Card - Compact
+            // Active Mode Card - Ultra Modern Design
             Button(action: {
                 showingModeSelector = true
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }) {
-                HStack(spacing: 12) {
+                HStack(spacing: 14) {
+                    // Gradient Icon Container
                     ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(AppTheme.accent.opacity(0.15))
-                            .frame(width: 44, height: 44)
+                        LinearGradient(
+                            colors: [
+                                AppTheme.accent,
+                                AppTheme.accent.opacity(0.7)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .frame(width: 56, height: 56)
+                        .shadow(color: AppTheme.accent.opacity(0.25), radius: 12, x: 0, y: 6)
                         
                         Image(systemName: activeMode.icon)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(AppTheme.accent)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.white)
                     }
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(activeMode.rawValue)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(AppTheme.textPrimary)
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 7) {
+                            Text(activeMode.rawValue)
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(AppTheme.textPrimary)
+                            
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(AppTheme.accent)
+                        }
+                        
                         Text(activeMode.description)
-                            .font(.system(size: 12))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(AppTheme.textSecondary)
                             .lineLimit(1)
                     }
                     
                     Spacer()
                     
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(AppTheme.textSecondary.opacity(0.6))
+                    // Modern Arrow with Background
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.accent.opacity(0.1))
+                            .frame(width: 32, height: 32)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(AppTheme.accent)
+                    }
                 }
-                .padding(14)
+                .padding(18)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(AppTheme.controlBackground.opacity(0.6))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(AppTheme.outline.opacity(0.5), lineWidth: 1)
-                        )
+                    ZStack {
+                        // Glassmorphic Background
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(AppTheme.controlBackground.opacity(0.8))
+                        
+                        // Subtle Gradient Overlay
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        AppTheme.accent.opacity(0.05),
+                                        Color.clear
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Border
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        AppTheme.accent.opacity(0.3),
+                                        AppTheme.outline.opacity(0.4)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.5
+                            )
+                    }
                 )
+                .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
             }
             .buttonStyle(.plain)
             .opacity(animateHeader ? 1 : 0)
@@ -189,14 +240,14 @@ struct WelcomeView: View {
     
     // MARK: - Modern Quick Actions Grid
     private var modernQuickActionsGrid: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             Text("Quick Actions")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(AppTheme.textSecondary)
                 .textCase(.uppercase)
-                .kerning(0.5)
+                .kerning(0.6)
             
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            VStack(spacing: 10) {
                 ForEach(Array(quickActions.enumerated()), id: \.element.id) { index, action in
                     ModernQuickActionCard(action: action) {
                         handleQuickAction(action.prompt)
@@ -312,8 +363,8 @@ private struct ModernQuickActionCard: View {
             impact.impactOccurred()
             onTap()
         }) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Icon with gradient background
+            HStack(spacing: 14) {
+                // Compact Icon with gradient background
                 ZStack {
                     Circle()
                         .fill(
@@ -329,29 +380,31 @@ private struct ModernQuickActionCard: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                 }
-                .shadow(color: action.gradient[0].opacity(0.3), radius: 8, x: 0, y: 4)
+                .shadow(color: action.gradient[0].opacity(0.25), radius: 6, x: 0, y: 3)
                 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(action.title)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(AppTheme.textPrimary)
+                        .lineLimit(1)
                     
                     Text(action.detail)
-                        .font(.system(size: 12, weight: .regular))
+                        .font(.system(size: 14, weight: .regular))
                         .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(1)
                 }
+                
+                Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 120)
-            .padding(14)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .fill(AppTheme.controlBackground.opacity(0.5))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(AppTheme.outline.opacity(0.6), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(AppTheme.outline.opacity(0.5), lineWidth: 1)
                     )
             )
         }

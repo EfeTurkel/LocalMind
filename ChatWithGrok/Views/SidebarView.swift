@@ -23,18 +23,23 @@ struct SidebarContainer: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            header
-            ScrollView(.vertical, showsIndicators: false) {
-                scrollContent
-                    .padding(.trailing, 4)
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: 16) {
+                header
+                    .padding(.top, 0)
+                
+                ScrollView(.vertical, showsIndicators: false) {
+                    scrollContent
+                        .padding(.trailing, 4)
+                        .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? geometry.safeAreaInsets.bottom : 12)
+                }
             }
+            .padding(.top, 0)
+            .padding(.bottom, 0)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppTheme.background)
         }
-        .padding(.top, 24)
-        .padding(.bottom, 12)
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppTheme.background)
     }
 
     private var header: some View {
@@ -57,6 +62,7 @@ struct SidebarContainer: View {
                         .clipShape(Circle())
                 }
             }
+            .padding(.top, 16)
 
             HStack(spacing: 16) {
                 ModeChip(title: selectedAIMode.rawValue, icon: selectedAIMode.icon) {

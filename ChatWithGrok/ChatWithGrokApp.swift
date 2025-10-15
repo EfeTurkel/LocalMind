@@ -17,8 +17,13 @@ struct LockMindApp: App {
         WindowGroup {
             ContentView()
                 .preferredColorScheme(getPreferredColorScheme())
+                .onAppear {
+                    // Set status bar style based on color scheme
+                    updateStatusBarStyle()
+                }
                 .onChange(of: systemColorScheme) { oldValue, newValue in
                     if preferredColorScheme == 0 {
+                        updateStatusBarStyle()
                         // Force UI update
                         NotificationCenter.default.post(
                             name: NSNotification.Name("UpdateColorScheme"),
@@ -26,6 +31,28 @@ struct LockMindApp: App {
                         )
                     }
                 }
+                .onChange(of: preferredColorScheme) { _, _ in
+                    updateStatusBarStyle()
+                }
+        }
+    }
+    
+    private func updateStatusBarStyle() {
+        let isDark: Bool
+        switch preferredColorScheme {
+        case 0:
+            isDark = systemColorScheme == .dark
+        case 2:
+            isDark = true
+        default:
+            isDark = false
+        }
+        
+        DispatchQueue.main.async {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+            windowScene.windows.forEach { window in
+                window.overrideUserInterfaceStyle = preferredColorScheme == 0 ? .unspecified : (isDark ? .dark : .light)
+            }
         }
     }
     
