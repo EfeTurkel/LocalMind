@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var selectedAIMode: AIMode = .general
     @AppStorage("selectedAIMode") private var storedAIModeRaw: String = AIMode.general.rawValue
     @State private var showingModeSelector = false
+    @State private var showingModelSelector = false
     @State private var showingLimitPopup = false
     @AppStorage("hapticFeedbackEnabled") private var hapticFeedbackEnabled = true
     @State private var showingProfile = false
@@ -94,41 +95,16 @@ struct ContentView: View {
         }
     }
 
-    private var ghostButton: some View {
-        GeometryReader { geometry in
-            Button(action: {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    isIncognitoMode.toggle()
-                }
-                let impact = UIImpactFeedbackGenerator(style: .light)
-                impact.impactOccurred()
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(Color.clear)
-                        .frame(width: 46, height: 46)
-                        .background(Color.clear)
-                        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
-                        .clipShape(Circle())
-                    ZStack {
-                        Image(systemName: "eye.slash.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(AppTheme.textPrimary)
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(AppTheme.accent)
-                            .offset(x: 12, y: 12)
-                    }
-                }
-            }
-            .accessibilityLabel("New incognito chat")
-        }
-    }
 
     private var topToolbar: some View {
         GeometryReader { geometry in
             HStack {
                 toolbarSidebarButton
+                if !isSidebarOpen {
+                    Spacer()
+                    modelSelectorButton
+                        .transition(.opacity.combined(with: .scale))
+                }
                 Spacer()
                 toolbarGhostButton
             }
@@ -221,20 +197,13 @@ struct ContentView: View {
                         isSidebarOpen = true
                     }
                 }) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.clear)
-                            .frame(width: 46, height: 46)
-                            .background(Color.clear)
-                            .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
-                            .clipShape(Circle())
-                        Image(systemName: "sidebar.leading")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(AppTheme.textPrimary)
-                    }
+                    Image(systemName: "sidebar.leading")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 46, height: 46)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Open sidebar")
-                .frame(width: 46, height: 46)
             } else {
                 // Preserve layout when hidden
                 Color.clear.frame(width: 46, height: 46)
@@ -242,23 +211,54 @@ struct ContentView: View {
         }
     }
 
+    private var modelSelectorButton: some View {
+        Button(action: {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            showingModelSelector = true
+        }) {
+            VStack(spacing: 2) {
+                Text(getProviderName(for: selectedAIModel))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppTheme.textSecondary)
+                
+                HStack(spacing: 4) {
+                    Text(getModelDisplayName(for: selectedAIModel))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                    
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(AppTheme.textSecondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Select AI model")
+    }
+
     private var toolbarGhostButton: some View {
         Button(action: {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                // Only toggle incognito; minimalHome is managed centrally in onChange(of: isIncognitoMode)
-                isIncognitoMode.toggle()
+            if messages.isEmpty {
+                // Ghost button behavior - toggle incognito mode
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isIncognitoMode.toggle()
+                }
+            } else {
+                // Home button behavior - clear messages and return to main screen
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    messages.removeAll()
+                    currentInput = ""
+                }
             }
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
         }) {
             ZStack {
-                Circle()
-                    .fill(Color.clear)
-                    .frame(width: 46, height: 46)
-                    .background(Color.clear)
-                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
-                    .clipShape(Circle())
-                ZStack {
+                if messages.isEmpty {
+                    // Ghost button icon
                     Image(systemName: "eye.slash.fill")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(AppTheme.textPrimary)
@@ -266,17 +266,81 @@ struct ContentView: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(AppTheme.accent)
                         .offset(x: 12, y: 12)
+                } else {
+                    // Home button icon
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppTheme.accent)
                 }
             }
+            .frame(width: 46, height: 46)
+            .contentShape(Rectangle())
         }
-        .accessibilityLabel("New incognito chat")
-        .frame(width: 46, height: 46)
+        .accessibilityLabel(messages.isEmpty ? "New incognito chat" : "Return to main screen")
     }
 
     private var keyboardPadding: CGFloat {
         guard !isSidebarOpen else { return 0 }
         let extra = max(keyboardHeight - bottomSafeAreaInset, 0)
         return extra > 0 ? extra + 24 : 0
+    }
+    
+    private func getProviderName(for model: String) -> String {
+        if model.starts(with: "claude-") {
+            return "Claude"
+        } else if model.starts(with: "gpt-") || model.starts(with: "o1-") {
+            return "OpenAI"
+        } else if model.starts(with: "gemini-") {
+            return "Gemini"
+        } else if model.starts(with: "grok-") {
+            return "Grok"
+        }
+        return "AI"
+    }
+    
+    private func getModelDisplayName(for model: String) -> String {
+        switch model {
+        // Grok Models
+        case "grok-beta":
+            return "Grok Beta"
+        case "grok-2-1212":
+            return "Grok 2"
+        case "grok-vision-beta":
+            return "Grok Vision"
+        // OpenAI Models
+        case "gpt-5-preview":
+            return "GPT-5 Preview"
+        case "o1-preview":
+            return "o1 Preview"
+        case "o1-mini":
+            return "o1 Mini"
+        case "gpt-4o":
+            return "GPT-4o"
+        case "gpt-4o-mini":
+            return "GPT-4o Mini"
+        case "gpt-4-turbo":
+            return "GPT-4 Turbo"
+        // Claude Models
+        case "claude-3-5-sonnet-20241022":
+            return "Claude 3.5 Sonnet"
+        case "claude-3-opus-20240229":
+            return "Claude 3 Opus"
+        case "claude-3-sonnet-20240229":
+            return "Claude 3 Sonnet"
+        case "claude-3-haiku-20240307":
+            return "Claude 3 Haiku"
+        // Gemini Models
+        case "gemini-2.0-flash-exp":
+            return "Gemini 2.0 Flash"
+        case "gemini-exp-1206":
+            return "Gemini 2.0 Pro"
+        case "gemini-1.5-pro":
+            return "Gemini 1.5 Pro"
+        case "gemini-1.5-flash":
+            return "Gemini 1.5 Flash"
+        default:
+            return model
+        }
     }
     
     private enum MessageSource {
@@ -359,6 +423,9 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showingModeSelector) {
                 AIModeSelector(selectedMode: $selectedAIMode)
+            }
+            .sheet(isPresented: $showingModelSelector) {
+                ModelSelectorView(selectedModel: $selectedAIModel)
             }
             .sheet(isPresented: $showingLimitPopup) {
                 MessageLimitPopupView(
@@ -1281,6 +1348,186 @@ struct MessagesView: View {
                     )
                 }
             }
+        }
+    }
+}
+
+struct ModelSelectorView: View {
+    @Binding var selectedModel: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var isLoading = false
+    @State private var openAIModels: [AIModelInfo] = []
+    @State private var claudeModels: [AIModelInfo] = []
+    @State private var geminiModels: [AIModelInfo] = []
+    @State private var grokModels: [AIModelInfo] = []
+    
+    struct AIModelInfo: Identifiable {
+        let id: String
+        let name: String
+        let description: String
+        let provider: String
+        let tier: String
+    }
+    
+    private var currentProvider: String {
+        if selectedModel.starts(with: "claude-") {
+            return "Claude"
+        } else if selectedModel.starts(with: "gpt-") || selectedModel.starts(with: "o1-") {
+            return "OpenAI"
+        } else if selectedModel.starts(with: "gemini-") {
+            return "Gemini"
+        } else if selectedModel.starts(with: "grok-") {
+            return "Grok"
+        }
+        return "AI"
+    }
+    
+    private var filteredModels: [AIModelInfo] {
+        let allModels = grokModels + openAIModels + claudeModels + geminiModels
+        return allModels.filter { $0.provider == currentProvider }
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                if isLoading {
+                    ProgressView("Loading models...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    if filteredModels.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 48))
+                                .foregroundColor(AppTheme.textSecondary)
+                            
+                            Text("No models available for \(currentProvider)")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(AppTheme.textPrimary)
+                            
+                            Text("Please check your API keys in Settings")
+                                .font(.system(size: 14))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        List {
+                            ForEach(filteredModels) { model in
+                                Button(action: {
+                                    selectedModel = model.id
+                                    dismiss()
+                                }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(model.name)
+                                                .font(.system(size: 16, weight: .semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                            
+                                            Text(model.description)
+                                                .font(.system(size: 14))
+                                                .foregroundColor(AppTheme.textSecondary)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        if selectedModel == model.id {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(AppTheme.accent)
+                                                .font(.system(size: 20))
+                                        }
+                                    }
+                                    .padding(.vertical, 8)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .listStyle(PlainListStyle())
+                    }
+                }
+            }
+            .navigationTitle("Select \(currentProvider) Model")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .onAppear {
+            loadModels()
+        }
+    }
+    
+    private func loadModels() {
+        Task {
+            await MainActor.run { isLoading = true }
+            do {
+                // OpenAI
+                if let key = UserDefaults.standard.string(forKey: "openAIAPIKey"), !key.isEmpty {
+                    let models = try await ModelCatalogService.shared.fetchOpenAIModels(apiKey: key)
+                    await MainActor.run {
+                        openAIModels = models.map { AIModelInfo(id: $0.id, name: $0.name, description: $0.description, provider: "OpenAI", tier: "") }
+                    }
+                } else {
+                    await MainActor.run {
+                        openAIModels = [
+                            AIModelInfo(id: "gpt-4o", name: "GPT-4o", description: "Fast and multimodal", provider: "OpenAI", tier: ""),
+                            AIModelInfo(id: "gpt-4o-mini", name: "GPT-4o Mini", description: "Affordable and efficient", provider: "OpenAI", tier: ""),
+                            AIModelInfo(id: "o1-mini", name: "o1 Mini", description: "Reasoning-optimized", provider: "OpenAI", tier: "")
+                        ]
+                    }
+                }
+                // Claude
+                if let key = UserDefaults.standard.string(forKey: "claudeAPIKey"), !key.isEmpty {
+                    let models = try await ModelCatalogService.shared.fetchClaudeModels(apiKey: key)
+                    await MainActor.run {
+                        claudeModels = models.map { AIModelInfo(id: $0.id, name: $0.name, description: $0.description, provider: "Claude", tier: "") }
+                    }
+                } else {
+                    await MainActor.run {
+                        claudeModels = [
+                            AIModelInfo(id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet", description: "Most capable", provider: "Claude", tier: ""),
+                            AIModelInfo(id: "claude-3-haiku-20240307", name: "Claude 3 Haiku", description: "Fast and affordable", provider: "Claude", tier: "")
+                        ]
+                    }
+                }
+                // Gemini
+                if let key = UserDefaults.standard.string(forKey: "geminiAPIKey"), !key.isEmpty {
+                    let models = try await ModelCatalogService.shared.fetchGeminiModels(apiKey: key)
+                    // Separate main vs preview/exp
+                    let mains = models.filter { !$0.id.contains("preview") && !$0.id.contains("exp") }
+                    let previews = models.filter { $0.id.contains("preview") || $0.id.contains("exp") }
+                    // Select only the most recent preview by updatedAt (fallback to name sort)
+                    let mostRecentPreview = previews.sorted { (a, b) in
+                        let ad = a.updatedAt ?? Date.distantPast
+                        let bd = b.updatedAt ?? Date.distantPast
+                        return ad > bd
+                    }.first
+                    let finalList = mains + (mostRecentPreview != nil ? [mostRecentPreview!] : [])
+                    await MainActor.run {
+                        geminiModels = finalList.map { AIModelInfo(id: $0.id, name: $0.name, description: $0.description, provider: "Gemini", tier: "") }
+                    }
+                } else {
+                    await MainActor.run {
+                        geminiModels = [
+                            AIModelInfo(id: "gemini-1.5-pro", name: "Gemini 1.5 Pro", description: "Powerful and versatile", provider: "Gemini", tier: ""),
+                            AIModelInfo(id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", description: "Fast and efficient", provider: "Gemini", tier: ""),
+                            AIModelInfo(id: "gemini-2.0-flash-exp", name: "Gemini 2.0 Flash (Preview)", description: "Latest experimental model", provider: "Gemini", tier: "")
+                        ]
+                    }
+                }
+                // Grok fallback
+                await MainActor.run {
+                    grokModels = [
+                        AIModelInfo(id: "grok-beta", name: "Grok Beta", description: "Grok general model", provider: "Grok", tier: ""),
+                        AIModelInfo(id: "grok-vision-beta", name: "Grok Vision", description: "Multimodal with vision", provider: "Grok", tier: "")
+                    ]
+                }
+            } catch {
+                // Silent fail; sections will show empty with hint
+            }
+            await MainActor.run { isLoading = false }
         }
     }
 }

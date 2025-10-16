@@ -1,6 +1,6 @@
 import Foundation
 
-struct ProviderModel: Codable, Identifiable, Equatable {
+struct ProviderModel: Codable, Identifiable, Equatable, Hashable {
     let id: String
     let name: String
     let description: String
