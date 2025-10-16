@@ -23,11 +23,7 @@ struct BannerView: View {
             }
         }
         .padding(12)
-        .background(colorScheme == .dark ? AppTheme.controlBackground : tint)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(colorScheme == .dark ? AppTheme.outline : tint.opacity(0.9))
-        )
+        .background(Color.clear)
+        .liquidGlass(.chip, tint: tint, tintOpacity: colorScheme == .dark ? 0.07 : 0.09)
     }
 }

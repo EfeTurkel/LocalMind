@@ -13,11 +13,8 @@ struct SavedNotificationView: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(AppTheme.secondaryBackground.opacity(0.95))
-        .overlay(
-            Capsule()
-                .stroke(AppTheme.outline)
-        )
+        .background(Color.clear)
+        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
         .shadow(color: Color.black.opacity(0.2), radius: 12, x: 0, y: 8)
         .transition(.scale.combined(with: .opacity))
     }

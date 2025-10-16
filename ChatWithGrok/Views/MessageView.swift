@@ -36,13 +36,10 @@ struct MessageView: View {
                         Text(attributedString)
                             .padding(.horizontal, 18)
                             .padding(.vertical, 16)
-                            .background(AppTheme.elevatedBackground)
+                            .background(Color.clear)
                             .foregroundColor(AppTheme.textPrimary)
                             .cornerRadius(AppTheme.cornerRadius)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                                    .stroke(AppTheme.outline)
-                            )
+                            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: AppPerformance.preferLightweightGlass ? 0.04 : 0.05)
                             .textSelection(.enabled)
                             .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 520, alignment: .leading)
                             .gesture(longPressGesture)
@@ -66,13 +63,10 @@ struct MessageView: View {
                     Text(attributedString)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 16)
-                        .background(AppTheme.accentGradient)
-                        .foregroundColor(.white)
+                        .background(Color.clear)
+                        .foregroundColor(AppTheme.textPrimary)
                         .cornerRadius(AppTheme.cornerRadius)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                                .stroke(Color.white.opacity(0.2))
-                        )
+                        .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: AppPerformance.preferLightweightGlass ? 0.07 : 0.09)
                         .textSelection(.enabled)
                         .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 520, alignment: .trailing)
                         .gesture(longPressGesture)
@@ -206,9 +200,27 @@ struct MessageView: View {
     }
     
     private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: date)
+        // Use cached formatter to avoid repeated allocations during fast scrolling
+        if MessageView.formatter == nil {
+            let f = DateFormatter()
+            f.dateFormat = "HH:mm"
+            MessageView.formatter = f
+        }
+        return MessageView.formatter!.string(from: date)
+    }
+    private static var formatter: DateFormatter?
+}
+
+// Equatable wrapper to avoid unnecessary re-renders when message hasn't changed
+struct EquatableMessageView: View, Equatable {
+    static func == (lhs: EquatableMessageView, rhs: EquatableMessageView) -> Bool {
+        lhs.message == rhs.message
+    }
+
+    let message: Message
+
+    var body: some View {
+        MessageView(message: message)
     }
 }
 

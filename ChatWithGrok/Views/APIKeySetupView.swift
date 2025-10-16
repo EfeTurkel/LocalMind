@@ -181,12 +181,8 @@ struct APIKeySetupView: View {
                         }
                     }
                     .padding(18)
-                    .background(AppTheme.secondaryBackground.opacity(0.95))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                            .stroke(AppTheme.outline)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+                    .background(Color.clear)
+                    .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
                     .padding(.horizontal)
                     
                     // Save Button
@@ -390,12 +386,8 @@ struct ModelCard: View {
                 }
             }
             .padding()
-            .background(AppTheme.secondaryBackground.opacity(0.95))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                    .stroke(isSelected ? AppTheme.accent.opacity(0.7) : AppTheme.outline, lineWidth: isSelected ? 2 : 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+            .background(Color.clear)
+            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
             .shadow(color: Color.black.opacity(isSelected ? 0.25 : 0.12), radius: isSelected ? 18 : 10, x: 0, y: 12)
         }
         .buttonStyle(PlainButtonStyle())

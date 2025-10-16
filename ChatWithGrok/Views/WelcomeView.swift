@@ -58,7 +58,7 @@ struct WelcomeView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 0)
                 modernHeroSection
-                modernQuickActionsGrid
+                minimalPinnedChats
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 20)
@@ -194,42 +194,10 @@ struct WelcomeView: View {
                             .foregroundColor(AppTheme.accent)
                     }
                 }
-                .padding(18)
-                .background(
-                    ZStack {
-                        // Glassmorphic Background
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(AppTheme.controlBackground.opacity(0.8))
-                        
-                        // Subtle Gradient Overlay
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        AppTheme.accent.opacity(0.05),
-                                        Color.clear
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                        
-                        // Border
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        AppTheme.accent.opacity(0.3),
-                                        AppTheme.outline.opacity(0.4)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1.5
-                            )
-                    }
-                )
-                .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
+                .padding(12)
+                .background(Color.clear)
+                .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.06)
+                .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
             }
             .buttonStyle(.plain)
             .opacity(animateHeader ? 1 : 0)
@@ -238,23 +206,72 @@ struct WelcomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    // MARK: - Modern Quick Actions Grid
-    private var modernQuickActionsGrid: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Quick Actions")
-                .font(.system(size: 16, weight: .bold))
+    // MARK: - Minimal Pinned Chats (Liquid Glass)
+    private var minimalPinnedChats: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Pinned Chats")
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(AppTheme.textSecondary)
                 .textCase(.uppercase)
-                .kerning(0.6)
-            
-            VStack(spacing: 10) {
-                ForEach(Array(quickActions.enumerated()), id: \.element.id) { index, action in
-                    ModernQuickActionCard(action: action) {
-                        handleQuickAction(action.prompt)
+                .kerning(0.5)
+
+            let pinnedIds = StorageManager.shared.loadPinnedIdentifiers()
+            let allChats = StorageManager.shared.loadAllChats()
+            let pinned = allChats.filter { chat in
+                if let id = StorageManager.shared.identifier(for: chat) { return pinnedIds.contains(id) }
+                return false
+            }
+
+            if pinned.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: "pin.slash")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(AppTheme.textSecondary)
+                    Text("No pinned chats yet")
+                        .font(.system(size: 14))
+                        .foregroundColor(AppTheme.textSecondary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.clear)
+                .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.06)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(pinned.prefix(3), id: \.[0].id) { chat in
+                        Button(action: {
+                            // Load selected pinned chat into current session via Notification
+                            NotificationCenter.default.post(name: Notification.Name("LoadPinnedChat"), object: chat)
+                        }) {
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(systemName: "pin.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(AppTheme.accent)
+                                    .padding(.top, 2)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(chat.first?.content ?? "Untitled Chat")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(AppTheme.textPrimary)
+                                        .lineLimit(1)
+                                    if let last = chat.last {
+                                        Text(last.content)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(AppTheme.textSecondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer(minLength: 8)
+                                if let last = chat.last {
+                                    Text(DateFormatter.yyyyMMdd.string(from: last.timestamp))
+                                        .font(.system(size: 11))
+                                        .foregroundColor(AppTheme.subtleText)
+                                }
+                            }
+                            .padding(12)
+                            .background(Color.clear)
+                            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .opacity(animateCards ? 1 : 0)
-                    .offset(y: animateCards ? 0 : 30)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.75).delay(Double(index) * 0.08), value: animateCards)
                 }
             }
         }
@@ -262,7 +279,7 @@ struct WelcomeView: View {
     
     // MARK: - Modern Suggestions Section
     private var modernSuggestionsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
             Text("Try Asking")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(AppTheme.textSecondary)
@@ -271,7 +288,7 @@ struct WelcomeView: View {
             
             VStack(spacing: 8) {
                 ForEach(Array(promptSuggestions.enumerated()), id: \.element.id) { index, suggestion in
-                    ModernPromptChip(suggestion: suggestion) {
+                        ModernPromptChip(suggestion: suggestion) {
                         handlePromptSuggestion(suggestion.text)
                     }
                     .opacity(animateCards ? 1 : 0)

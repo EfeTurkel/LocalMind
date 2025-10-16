@@ -29,5 +29,8 @@ struct FeatureRow: View {
                 }
             }
         }
+        .padding(12)
+        .background(Color.clear)
+        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.06)
     }
 } 

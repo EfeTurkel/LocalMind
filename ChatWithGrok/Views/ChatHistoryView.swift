@@ -35,12 +35,11 @@ struct ChatHistoryView: View {
                         }) {
                             Text("Start Chatting")
                                 .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.white)
+                                .foregroundColor(AppTheme.textPrimary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
-                                .background(AppTheme.accentGradient)
-                                .cornerRadius(AppTheme.cornerRadius)
-                                .shadow(color: AppTheme.accent.opacity(0.3), radius: 18, x: 0, y: 12)
+                                .background(Color.clear)
+                                .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
                         }
                         .padding(.horizontal, 40)
                     }
@@ -124,15 +123,8 @@ struct ChatHistoryView: View {
                         .listStyle(PlainListStyle())
                         .scrollContentBackground(.hidden)
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
-                            .fill(AppTheme.secondaryBackground.opacity(0.85))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.1, style: .continuous)
-                                    .stroke(AppTheme.outline)
-                            )
-                            .shadow(color: Color.black.opacity(0.2), radius: 22, x: 0, y: 16)
-                    )
+                    .background(Color.clear)
+                    .liquidGlass(.surface, tint: AppTheme.accent, tintOpacity: 0.05)
                 }
             }
             .padding(.horizontal, 16)

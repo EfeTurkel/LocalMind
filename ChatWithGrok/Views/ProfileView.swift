@@ -116,12 +116,8 @@ struct ProfileView: View {
                 }
             }
             .padding(18)
-            .background(AppTheme.secondaryBackground.opacity(0.95))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                    .stroke(AppTheme.outline)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+            .background(Color.clear)
+            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
         }
     }
     

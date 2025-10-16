@@ -114,8 +114,8 @@ struct SocialMediaButton: View {
                     .foregroundColor(.blue)
             }
             .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
+            .background(Color.clear)
+            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
         }
         .buttonStyle(PlainButtonStyle())
     }

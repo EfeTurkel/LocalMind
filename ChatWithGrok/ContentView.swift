@@ -39,10 +39,12 @@ struct ContentView: View {
     @AppStorage("avatar") private var avatar = "xai2_logo"
     @AppStorage("userName") private var userName = ""
     @AppStorage("minimalHome") private var minimalHome = false
+    @State private var minimalHomeWasOnBeforeIncognito = false
     @State private var isSidebarOpen = false
     @State private var sidebarSearchText: String = ""
     @State private var sidebarSavedChats: [[Message]] = []
     @State private var sidebarPinnedIdentifiers: Set<Double> = []
+    @State private var isChatScrolling: Bool = false
     // Banner state for replies arriving while on home
     @State private var homeNewMessageAvailable: Bool = false
     @State private var pendingChatForHome: [Message] = []
@@ -55,6 +57,220 @@ struct ContentView: View {
             .flatMap { $0.windows }
             .first?
             .safeAreaInsets.bottom ?? 0
+    }
+
+    private var sidebarToggleButton: some View {
+        Group {
+            if !isSidebarOpen && !(isIncognitoMode && messages.isEmpty) {
+                GeometryReader { geometry in
+                    Button(action: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            isSidebarOpen = true
+                        }
+                    }) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.controlBackground.opacity(0.7))
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                            Image(systemName: "sidebar.leading")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(AppTheme.textPrimary)
+                        }
+                        .frame(width: 46, height: 46)
+                        .overlay(
+                            Circle()
+                                .stroke(AppTheme.outline.opacity(0.3), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
+                    }
+                    .position(
+                        x: geometry.safeAreaInsets.leading + 23,
+                        y: geometry.safeAreaInsets.top + 23
+                    )
+                    .transition(.opacity.combined(with: .scale))
+                }
+            }
+        }
+    }
+
+    private var ghostButton: some View {
+        GeometryReader { geometry in
+            Button(action: {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    isIncognitoMode.toggle()
+                }
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
+            }) {
+                ZStack {
+                    Circle()
+                        .fill(Color.clear)
+                        .frame(width: 46, height: 46)
+                        .background(Color.clear)
+                        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
+                        .clipShape(Circle())
+                    ZStack {
+                        Image(systemName: "eye.slash.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(AppTheme.accent)
+                            .offset(x: 12, y: 12)
+                    }
+                }
+            }
+            .accessibilityLabel("New incognito chat")
+        }
+    }
+
+    private var topToolbar: some View {
+        GeometryReader { geometry in
+            HStack {
+                toolbarSidebarButton
+                Spacer()
+                toolbarGhostButton
+            }
+            .padding(.horizontal, 12)
+            .padding(.top, 6) // place buttons at the very top
+            .frame(height: 56, alignment: .top)
+        }
+        // No full-width background → buttons appear as separate Liquid Glass chips
+    }
+
+    // MARK: - Bottom Home Bar (Liquid Glass)
+    private var bottomHomeBar: some View {
+        GeometryReader { geometry in
+            HStack(spacing: 12) {
+                // History
+                Button(action: {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                    showingChatHistory = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("History")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(AppTheme.textPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.clear)
+                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
+                    .clipShape(Capsule())
+                    .frame(height: 46)
+                }
+                .accessibilityLabel("Open chat history")
+
+                Spacer(minLength: 12)
+
+                // Mode selector
+                Button(action: {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                    showingModeSelector = true
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: selectedAIMode.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                        Text(selectedAIMode.rawValue)
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(AppTheme.textPrimary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(Color.clear)
+                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
+                    .clipShape(Capsule())
+                    .frame(height: 46)
+                }
+                .accessibilityLabel("Choose AI mode")
+
+                Spacer(minLength: 12)
+
+                // Settings
+                Button(action: {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                    showingSettings = true
+                }) {
+                    Image(systemName: "gear")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 46, height: 46)
+                        .background(Color.clear)
+                        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
+                        .clipShape(Capsule())
+                }
+                .accessibilityLabel("Open settings")
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, max(geometry.safeAreaInsets.bottom, 10) + 8)
+        }
+    }
+
+    // MARK: - Toolbar Buttons (aligned and consistent look)
+    private var toolbarSidebarButton: some View {
+        Group {
+            if !isSidebarOpen {
+                Button(action: {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isSidebarOpen = true
+                    }
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.clear)
+                            .frame(width: 46, height: 46)
+                            .background(Color.clear)
+                            .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
+                            .clipShape(Circle())
+                        Image(systemName: "sidebar.leading")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                    }
+                }
+                .accessibilityLabel("Open sidebar")
+                .frame(width: 46, height: 46)
+            } else {
+                // Preserve layout when hidden
+                Color.clear.frame(width: 46, height: 46)
+            }
+        }
+    }
+
+    private var toolbarGhostButton: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                // Only toggle incognito; minimalHome is managed centrally in onChange(of: isIncognitoMode)
+                isIncognitoMode.toggle()
+            }
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+        }) {
+            ZStack {
+                Circle()
+                    .fill(Color.clear)
+                    .frame(width: 46, height: 46)
+                    .background(Color.clear)
+                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
+                    .clipShape(Circle())
+                ZStack {
+                    Image(systemName: "eye.slash.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(AppTheme.accent)
+                        .offset(x: 12, y: 12)
+                }
+            }
+        }
+        .accessibilityLabel("New incognito chat")
+        .frame(width: 46, height: 46)
     }
 
     private var keyboardPadding: CGFloat {
@@ -92,54 +308,24 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack(alignment: .leading) {
-                // Status bar background
-                VStack(spacing: 0) {
-                    Color.clear.frame(height: 0) // remove extra top filler entirely
-                    Spacer()
-                }
-                .zIndex(0)
-                
                 mainBackground
                 chatLayer
                 sidebarLayer
             }
             .contentShape(Rectangle())
-            // Global top-left sidebar toggle button (pinned to true safe area)
-            .overlay(alignment: .topLeading) {
-                if !isSidebarOpen {
-                    GeometryReader { geometry in
-                        Button(action: {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                isSidebarOpen = true
-                            }
-                        }) {
-                            ZStack {
-                                Circle()
-                                    .fill(AppTheme.controlBackground.opacity(0.7))
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                                
-                                Image(systemName: "sidebar.leading")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(AppTheme.textPrimary)
-                            }
-                            .frame(width: 46, height: 46)
-                            .overlay(
-                                Circle()
-                                    .stroke(AppTheme.outline.opacity(0.3), lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
-                        }
-                        .position(
-                            x: 18 + 23,
-                            y: geometry.safeAreaInsets.top + 23
-                        )
-                        .transition(.opacity.combined(with: .scale))
-                    }
+            // Solid cap under status bar to eliminate any gradient/material bleed (uniform color across left/right)
+            .overlay(alignment: .top) {
+                GeometryReader { geo in
+                    AppTheme.elevatedBackground
+                        .frame(height: geo.safeAreaInsets.top)
+                        .ignoresSafeArea(edges: .top)
+                        .allowsHitTesting(false)
                 }
             }
+            // Unified top toolbar
+            .overlay(alignment: .top) { topToolbar }
             .overlay(alignment: .leading) {
-                if isSidebarOpen {
+                if isSidebarOpen && !(isIncognitoMode && messages.isEmpty) {
                     HStack(spacing: 0) {
                         Color.clear.frame(width: 300)
                         Color.black.opacity(0.001)
@@ -153,6 +339,7 @@ struct ContentView: View {
                     .ignoresSafeArea()
                 }
             }
+            
             .onTapGesture {
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             }
@@ -204,52 +391,34 @@ struct ContentView: View {
         }
         .onAppear {
             checkAndResetDailyLimit()
-            // Sync stored AI mode
-            if let restored = AIMode(rawValue: storedAIModeRaw) {
-                selectedAIMode = restored
-            }
-            
-            // Load API keys
+            if let restored = AIMode(rawValue: storedAIModeRaw) { selectedAIMode = restored }
             apiKey = UserDefaults.standard.string(forKey: "grokApiKey") ?? ""
             openAIAPIKey = UserDefaults.standard.string(forKey: "openAIAPIKey") ?? ""
             claudeAPIKey = UserDefaults.standard.string(forKey: "claudeAPIKey") ?? ""
-            
-            // Check if user has set up API key
             hasAPIKey = !apiKey.isEmpty || !openAIAPIKey.isEmpty || !claudeAPIKey.isEmpty || !(UserDefaults.standard.string(forKey: "geminiAPIKey") ?? "").isEmpty
-            
-            // Configure status bar appearance
             configureStatusBar()
-            
-            // Klavye bildirimlerini dinle
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillShowNotification,
-                object: nil,
-                queue: .main
-            ) { notification in
-                let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
-                keyboardHeight = keyboardFrame?.height ?? 0
+            refreshSidebarChats()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+            let keyboardFrame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            keyboardHeight = keyboardFrame?.height ?? 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SendMessageFromTip"))) { note in
+            if let messageText = note.object as? String {
+                _ = handleSend(for: messageText, source: .tip)
             }
-            
-            NotificationCenter.default.addObserver(
-                forName: UIResponder.keyboardWillHideNotification,
-                object: nil,
-                queue: .main
-            ) { _ in
-                keyboardHeight = 0
-            }
-            
-            // Tip'ten gelen mesajları dinle
-            NotificationCenter.default.addObserver(
-                forName: Notification.Name("SendMessageFromTip"),
-                object: nil,
-                queue: .main
-            ) { notification in
-                if let messageText = notification.object as? String {
-                    handleSend(for: messageText, source: .tip)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("LoadPinnedChat"))) { note in
+            if let chat = note.object as? [Message] {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    messages = chat
+                    isLoading = false
+                    currentInput = ""
                 }
             }
-
-            refreshSidebarChats()
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
@@ -259,6 +428,26 @@ struct ContentView: View {
         }
         .onChange(of: activeColorScheme) { _, _ in
             configureStatusBar()
+        }
+        .onChange(of: isSidebarOpen) { _, newValue in
+            if newValue {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
+        }
+        .onChange(of: isIncognitoMode) { wasIncognito, nowIncognito in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                if nowIncognito {
+                    // Snapshot current minimalHome before forcing minimal mode
+                    minimalHomeWasOnBeforeIncognito = minimalHome
+                    minimalHome = true
+                    messages.removeAll()
+                    currentInput = ""
+                    isSidebarOpen = false
+                } else {
+                    // Restore minimal home to the state before incognito was enabled
+                    minimalHome = minimalHomeWasOnBeforeIncognito
+                }
+            }
         }
         .onChange(of: messages.count) { _, _ in
             refreshSidebarChats()
@@ -311,21 +500,30 @@ struct ContentView: View {
     }
 
     private var mainBackground: some View {
-        ZStack {
-            AppTheme.background
-                .ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                // Base fill to match app color
+                AppTheme.background
+                    .ignoresSafeArea()
 
-            if activeColorScheme == .dark || preferredColorScheme == 2 {
-                RadialGradient(
-                    colors: [
-                        AppTheme.accent.opacity(0.12),
-                        AppTheme.background
-                    ],
-                    center: .topLeading,
-                    startRadius: 120,
-                    endRadius: 600
-                )
-                .ignoresSafeArea()
+                if (activeColorScheme == .dark || preferredColorScheme == 2) && !AppPerformance.preferLightweightGlass && !isChatScrolling {
+                    RadialGradient(
+                        colors: [
+                            AppTheme.accent.opacity(0.10),
+                            AppTheme.background
+                        ],
+                        center: .topLeading,
+                        startRadius: 120,
+                        endRadius: 600
+                    )
+                    .ignoresSafeArea()
+                }
+
+                // Solid cap under the notch/status bar to prevent gradient bleed
+                AppTheme.background
+                    .frame(height: geo.safeAreaInsets.top)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
             }
         }
     }
@@ -413,12 +611,32 @@ struct ContentView: View {
                         isLoading: $isLoading,
                         keyboardHeight: $keyboardHeight,
                         selectedAIModel: $selectedAIModel,
-                        showingModeSelector: $showingModeSelector
+                        showingModeSelector: $showingModeSelector,
+                        isScrolling: $isChatScrolling
                     )
                     .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580, maxHeight: .infinity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Minimal temporary session overlay when Incognito + empty
+            .overlay(alignment: .center) {
+                if messages.isEmpty && isIncognitoMode {
+                    VStack(spacing: 10) {
+                        Text("Temporary Chat")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(AppTheme.textPrimary)
+                        Text("Incognito is on. This chat won't be saved.")
+                            .font(.system(size: 13))
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.clear)
+                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Temporary chat. Incognito is on. This chat won't be saved.")
+                }
+            }
 
             SimpleFluidInput(
                 currentInput: $currentInput,
@@ -445,9 +663,8 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
-                .background(AppTheme.controlBackground)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(AppTheme.outline))
+                        .background(Color.clear)
+                        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
                 .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 6)
                 .padding(.top, 18)
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -908,15 +1125,7 @@ struct ToolbarContent: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.2, style: .continuous)
-                .fill(AppTheme.secondaryBackground.opacity(0.92))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.cornerRadius * 1.2, style: .continuous)
-                        .stroke(AppTheme.outline)
-                )
-        )
-        .shadow(color: Color.black.opacity(0.26), radius: 24, x: 0, y: 18)
+        .liquidGlass(.toolbar, tint: AppTheme.accent, tintOpacity: 0.07)
     }
 
     private var limitIndicator: some View {
@@ -967,6 +1176,7 @@ struct MessagesView: View {
     @Binding var keyboardHeight: CGFloat
     @Binding var selectedAIModel: String
     @Binding var showingModeSelector: Bool
+    @Binding var isScrolling: Bool
     
     var body: some View {
         Group {
@@ -976,11 +1186,11 @@ struct MessagesView: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 12) {
-                            ForEach(messages) { message in
+                            ForEach(messages, id: \._idHash) { message in
                                 if message.isLoading {
                                     LoadingView(selectedModel: message.aiModel)
                                 } else {
-                                    MessageView(message: message)
+                                    EquatableMessageView(message: message)
                                         .id(message.id)
                                 }
                             }
@@ -1035,12 +1245,16 @@ struct MessagesView: View {
                     .gesture(
                         DragGesture()
                             .onChanged { gesture in
+                                isScrolling = true
                                 if gesture.translation.height > 30 {
                                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
                                                                  to: nil, from: nil, for: nil)
                                 }
                             }
                             .onEnded { gesture in
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    isScrolling = false
+                                }
                                 if gesture.translation.width > 100 && !messages.isEmpty { // Sağa kaydırma - Ana ekrana dön
                                     withAnimation {
                                         messages.removeAll()

@@ -122,36 +122,52 @@ struct SimpleFluidInput: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Suggestion Chips - Only show when no keyboard and no messages
+            // Suggestions Panel (Liquid Glass) — paged, 2 per view, total up to 5
             if keyboardHeight == 0 && messages.isEmpty && currentInput.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(displayedSuggestions, id: \.self) { suggestion in
-                            Button(action: {
-                                currentInput = suggestion
-                                let impact = UIImpactFeedbackGenerator(style: .light)
-                                impact.impactOccurred()
-                            }) {
-                                Text(suggestion)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(AppTheme.textPrimary)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                            .fill(AppTheme.controlBackground.opacity(0.6))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                                    .stroke(AppTheme.outline.opacity(0.8), lineWidth: 1.5)
-                                            )
-                                    )
+                let items = Array(displayedSuggestions.prefix(5))
+                let pages: [[String]] = stride(from: 0, to: items.count, by: 2).map { idx in
+                    Array(items[idx..<min(idx+2, items.count)])
+                }
+                VStack(spacing: 8) {
+                    TabView {
+                        ForEach(0..<pages.count, id: \.self) { pageIndex in
+                            HStack(spacing: 10) {
+                                ForEach(pages[pageIndex], id: \.self) { suggestion in
+                                    Button(action: {
+                                        currentInput = suggestion
+                                        let impact = UIImpactFeedbackGenerator(style: .light)
+                                        impact.impactOccurred()
+                                    }) {
+                                        HStack(alignment: .center, spacing: 10) {
+                                            Image(systemName: "sparkles")
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundColor(AppTheme.accent)
+                                            Text(suggestion)
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundColor(AppTheme.textPrimary)
+                                                .multilineTextAlignment(.leading)
+                                                .lineLimit(2)
+                                                .minimumScaleFactor(0.9)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 12)
+                                        .background(Color.clear)
+                                        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: AppPerformance.preferLightweightGlass ? 0.06 : 0.08)
+                                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                // If only one item on the last page, keep layout balance with a spacer
+                                if pages[pageIndex].count == 1 { Spacer(minLength: 10) }
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 12)
                         }
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 12)
+                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    .frame(height: 86)
                 }
+                .padding(.top, 6)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             
@@ -159,20 +175,7 @@ struct SimpleFluidInput: View {
             HStack(alignment: .bottom, spacing: 12) {
                 // Input Container
                 ZStack(alignment: .trailing) {
-                // Background
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(AppTheme.elevatedBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(
-                                isFocused ? AppTheme.accent : AppTheme.outline.opacity(0.6),
-                                lineWidth: isFocused ? 2 : 1
-                            )
-                    )
-                    .frame(height: inputHeight)
-                    .scaleEffect(isFocused ? 1.02 : 1.0)
-                    .animation(AppTheme.springMedium, value: isFocused)
-                
+                // Unified bar: rely on outer Liquid Glass; no inner background
                 // Text Input
                 HStack(spacing: 12) {
                     // Clear button (only when focused and has text)
@@ -203,14 +206,7 @@ struct SimpleFluidInput: View {
                             updateInputHeight()
                         }
                     
-                    // Character count
-                    if !currentInput.isEmpty {
-                        Text("\(currentInput.count)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(AppTheme.textSecondary.opacity(0.6))
-                            .padding(.trailing, 18)
-                            .transition(.opacity)
-                    }
+                    Spacer(minLength: 8)
                 }
                 
                 // Send button
@@ -220,23 +216,11 @@ struct SimpleFluidInput: View {
                     onSend()
                 }) {
                     ZStack {
-                        Circle()
-                            .fill(
-                                currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading
-                                    ? AppTheme.controlBackground
-                                    : AppTheme.accent
-                            )
-                            .frame(width: 36, height: 36)
-                            .scaleEffect(isLoading ? 1.1 : 1.0)
-                            .animation(AppTheme.springFast, value: isLoading)
-                        
+                        // Minimal icon inside unified bar
                         Image(systemName: isLoading ? "hourglass" : "arrow.up")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(
-                                currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading
-                                    ? AppTheme.textSecondary
-                                    : .white
-                            )
+                            .foregroundColor(AppTheme.textPrimary)
+                            .frame(width: 36, height: 36)
                             .rotationEffect(.degrees(isLoading ? 360 : 0))
                             .animation(
                                 isLoading 
@@ -249,15 +233,19 @@ struct SimpleFluidInput: View {
                     }
                 }
                 .disabled(currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
-                .padding(.trailing, 6)
+                .padding(.trailing, 4)
                 .scaleEffect(currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? 0.9 : 1.0)
                 .animation(AppTheme.springMedium, value: currentInput.isEmpty)
                 }
                 .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
-            .background(AppTheme.background)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.clear)
+                    .liquidGlass(.toolbar, tint: AppTheme.accent, tintOpacity: AppPerformance.preferLightweightGlass ? 0.06 : 0.08)
+            )
         }
         .onAppear {
             refreshSuggestions()

@@ -42,12 +42,8 @@ struct LoadingView: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
-            .background(AppTheme.elevatedBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous)
-                    .stroke(AppTheme.outline)
-            )
-            .cornerRadius(AppTheme.cornerRadius)
+            .background(Color.clear)
+            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
             
             Spacer()
         }

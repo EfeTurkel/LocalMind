@@ -40,7 +40,7 @@ struct FluidMessageInput: View {
     var body: some View {
         VStack(spacing: 0) {
             // Quick suggestions when focused
-            if showSuggestions && isFocused {
+            if showSuggestions && isFocused && !AppPerformance.preferLightweightGlass {
                 FluidSuggestionsView(
                     onSuggestionTap: { suggestion in
                         currentInput = suggestion
@@ -55,16 +55,14 @@ struct FluidMessageInput: View {
                 ZStack(alignment: .trailing) {
                 // Background with fluid animation
                 ZStack {
+                    // Use Liquid Glass instead of opaque elevated background
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(AppTheme.elevatedBackground)
-                    
+                        .fill(Color.clear)
+
                     fluidBackground
                         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 }
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(fluidBorder, lineWidth: isFocused ? 2 : 1)
-                )
+                .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: isFocused ? 0.12 : 0.09)
                     .frame(height: inputHeight)
                     .scaleEffect(fluidScale)
                     .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFocused)
@@ -114,9 +112,12 @@ struct FluidMessageInput: View {
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 14)
-            .background(fluidContainerBackground)
+            .background(Color.clear)
+            .liquidGlass(.toolbar, tint: AppTheme.accent, tintOpacity: 0.08)
             .onAppear {
-                startFluidAnimation()
+                if !AppPerformance.preferLightweightGlass {
+                    startFluidAnimation()
+                }
             }
             .onDisappear {
                 stopFluidAnimation()
@@ -183,22 +184,23 @@ struct FluidMessageInput: View {
             onSend()
         }) {
             ZStack {
-                // Fluid button background
+                // Liquid Glass button background
                 Circle()
-                    .fill(fluidButtonBackground)
+                    .fill(Color.clear)
                     .frame(width: 36, height: 36)
                     .scaleEffect(fluidButtonScale)
-                    .shadow(
-                        color: fluidButtonShadow,
-                        radius: fluidButtonShadowRadius,
-                        x: 0,
-                        y: fluidButtonShadowOffset
-                    )
+                    .background(Color.clear)
+                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.09)
+                    .clipShape(Circle())
                 
                 // Send icon with fluid animation
                 Image(systemName: isLoading ? "hourglass" : "arrow.up")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(fluidButtonIconColor)
+                    .foregroundColor(
+                        currentInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading
+                        ? AppTheme.textSecondary
+                        : AppTheme.textPrimary
+                    )
                     .rotationEffect(.degrees(fluidButtonRotation))
                     .scaleEffect(fluidButtonIconScale)
             }

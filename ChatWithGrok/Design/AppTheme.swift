@@ -120,3 +120,170 @@ enum AppTheme {
     }
 }
 
+
+// MARK: - Typography & Spacing Tokens (iOS 26)
+enum AppTypography {
+    static let largeTitle: Font = .system(size: 28, weight: .bold)
+    static let title: Font = .system(size: 20, weight: .semibold)
+    static let body: Font = .system(size: 16, weight: .regular)
+    static let subheadline: Font = .system(size: 14, weight: .medium)
+    static let caption: Font = .system(size: 12, weight: .medium)
+}
+
+enum AppSpacing {
+    static let s: CGFloat = 8
+    static let m: CGFloat = 12
+    static let l: CGFloat = 16
+    static let xl: CGFloat = 24
+}
+
+
+// MARK: - Performance & Accessibility Heuristics
+enum AppPerformance {
+    static var isLowPowerMode: Bool { ProcessInfo.processInfo.isLowPowerModeEnabled }
+    static var reduceTransparency: Bool { UIAccessibility.isReduceTransparencyEnabled }
+    static var reduceMotion: Bool { UIAccessibility.isReduceMotionEnabled }
+    static var preferLightweightGlass: Bool { isLowPowerMode || reduceTransparency }
+}
+
+
+// MARK: - iOS 26 Liquid Glass Tokens & Components
+
+/// Visual style presets for Liquid Glass containers.
+enum LiquidGlassStyle {
+    case surface
+    case toolbar
+    case chip
+    case card
+
+    var cornerRadius: CGFloat {
+        switch self {
+        case .surface: return 20
+        case .toolbar: return 16
+        case .chip: return 14
+        case .card: return 18
+        }
+    }
+
+    var strokeOpacity: Double {
+        switch self {
+        case .surface: return 0.10
+        case .toolbar: return 0.12
+        case .chip: return 0.14
+        case .card: return 0.10
+        }
+    }
+
+    var shadow: (color: Color, radius: CGFloat, y: CGFloat) {
+        // Slightly stronger for surface/card, lighter for toolbar/chip
+        switch self {
+        case .surface: return (.black.opacity(0.14), 16, 8)
+        case .toolbar: return (.black.opacity(0.10), 12, 6)
+        case .chip: return (.black.opacity(0.08), 8, 4)
+        case .card: return (.black.opacity(0.12), 14, 7)
+        }
+    }
+}
+
+/// A modifier that applies a Liquid Glass appearance consistent with iOS 26.
+struct LiquidGlassModifier: ViewModifier {
+    let style: LiquidGlassStyle
+    let tint: Color
+    let tintOpacity: Double
+    @Environment(\.colorScheme) private var colorScheme: ColorScheme
+
+    init(style: LiquidGlassStyle = .surface, tint: Color = AppTheme.accent, tintOpacity: Double = 0.06) {
+        self.style = style
+        self.tint = tint
+        self.tintOpacity = tintOpacity
+    }
+
+    func body(content: Content) -> some View {
+        let isHighContrast = UIAccessibility.isDarkerSystemColorsEnabled
+        let effectiveTintOpacity = isHighContrast ? min(tintOpacity + 0.04, 0.14) : tintOpacity
+        let baseStroke = style.strokeOpacity
+        let strokeBoost = isHighContrast ? 0.05 : 0.0
+        let schemeAdjust = (colorScheme == .dark) ? 0.02 : 0.0
+        let effectiveStroke = min(baseStroke + strokeBoost + schemeAdjust, 0.2)
+        let shadow = style.shadow
+
+        // Lightweight path for performance/battery/accessibility
+        if AppPerformance.preferLightweightGlass {
+            return AnyView(
+                content
+                    .padding(0)
+                    .background(
+                        // Use thinner, cheaper material
+                        RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                            .fill(.thinMaterial)
+                    )
+                    // No gradient tint or shadow in lightweight mode
+            )
+        }
+
+        return AnyView(
+            content
+                .padding(0)
+                .background(
+                    // Base material (thinner is cheaper and closer to iOS bar surfaces)
+                    RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                        .fill(.thinMaterial)
+                )
+                .background(
+                    Group {
+                        if effectiveTintOpacity > 0.05 {
+                            RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [tint.opacity(effectiveTintOpacity), .clear],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .compositingGroup() // hint GPU
+                        }
+                    }
+                )
+                .overlay(
+                    // Edge highlight to suggest refraction/lensing
+                    RoundedRectangle(cornerRadius: style.cornerRadius, style: .continuous)
+                        .stroke(Color.white.opacity(effectiveStroke), lineWidth: 1)
+                )
+                .shadow(color: AppPerformance.reduceMotion ? .clear : (isHighContrast ? shadow.color.opacity(1.0) : shadow.color),
+                        radius: AppPerformance.reduceMotion ? 0 : (isHighContrast ? shadow.radius + 2 : shadow.radius),
+                        y: AppPerformance.reduceMotion ? 0 : (isHighContrast ? shadow.y + 1 : shadow.y))
+                .transaction { txn in
+                    if AppPerformance.reduceMotion { txn.animation = nil }
+                }
+        )
+    }
+}
+
+extension View {
+    /// Apply the Liquid Glass style.
+    func liquidGlass(_ style: LiquidGlassStyle = .surface, tint: Color = AppTheme.accent, tintOpacity: Double = 0.06) -> some View {
+        modifier(LiquidGlassModifier(style: style, tint: tint, tintOpacity: tintOpacity))
+    }
+}
+
+/// Convenience container for wrapping content in a Liquid Glass surface.
+struct LiquidGlassContainer<Content: View>: View {
+    let style: LiquidGlassStyle
+    let tint: Color
+    let tintOpacity: Double
+    let content: Content
+
+    init(style: LiquidGlassStyle = .surface, tint: Color = AppTheme.accent, tintOpacity: Double = 0.06, @ViewBuilder content: () -> Content) {
+        self.style = style
+        self.tint = tint
+        self.tintOpacity = tintOpacity
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(0)
+            .liquidGlass(style, tint: tint, tintOpacity: tintOpacity)
+    }
+}
+

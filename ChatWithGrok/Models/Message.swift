@@ -1,6 +1,6 @@
 import Foundation
 
-struct Message: Identifiable, Codable {
+struct Message: Identifiable, Codable, Equatable, Hashable {
     let id = UUID()
     let content: String
     let isUser: Bool
@@ -22,3 +22,14 @@ struct Message: Identifiable, Codable {
         case id, content, isUser, timestamp, category, isLoading, aiModel
     }
 } 
+
+extension Message {
+    // Stable hash usable for ForEach id to reduce diff churn
+    var _idHash: Int {
+        var hasher = Hasher()
+        hasher.combine(id)
+        hasher.combine(isUser)
+        hasher.combine(aiModel)
+        return hasher.finalize()
+    }
+}

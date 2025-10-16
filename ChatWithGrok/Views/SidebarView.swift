@@ -38,7 +38,12 @@ struct SidebarContainer: View {
             .padding(.bottom, 0)
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppTheme.background)
+            .background(Color.clear)
+            .liquidGlass(.surface, tint: AppTheme.accent, tintOpacity: 0.05)
+            .onAppear {
+                // Ensure keyboard is dismissed when sidebar is presented
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
         }
     }
 
@@ -46,7 +51,7 @@ struct SidebarContainer: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
                 Text("LockMind")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(AppTypography.largeTitle)
                     .foregroundColor(AppTheme.textPrimary)
                 Spacer()
                 Button(action: {
@@ -126,8 +131,8 @@ struct SidebarContainer: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(16)
-                    .background(AppTheme.controlBackground)
-                    .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
+                    .background(Color.clear)
+                    .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
                 } else {
                     LazyVStack(spacing: 12) {
                         ForEach(filteredChats().indices, id: \.self) { index in
@@ -201,12 +206,8 @@ struct SidebarContainer: View {
                 }
             }
             .padding(14)
-            .background(AppTheme.controlBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                    .stroke(AppTheme.outline)
-            )
+            .background(Color.clear)
+            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
             .contextMenu {
                 Button(role: .destructive) {
                     onDeleteChat(chat)
@@ -286,12 +287,8 @@ struct SearchField: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(AppTheme.controlBackground)
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.outline)
-        )
+        .background(Color.clear)
+        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.07)
     }
 }
 
@@ -319,12 +316,8 @@ struct QuickActionsRow: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(AppTheme.textPrimary)
                 .frame(width: 42, height: 42)
-                .background(AppTheme.controlBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(AppTheme.outline)
-                )
+        .background(Color.clear)
+        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.07)
                 .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 6)
         }
     }
@@ -350,12 +343,8 @@ private struct ModeChip: View {
             .foregroundColor(AppTheme.textPrimary)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(AppTheme.controlBackground)
-            .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                    .stroke(AppTheme.outline)
-            )
+            .background(Color.clear)
+            .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.07)
             .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
         }
     }

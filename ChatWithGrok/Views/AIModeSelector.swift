@@ -70,20 +70,19 @@ struct AIModeSelector: View {
                     Button(action: applySelectionAndDismiss) {
                         Text("Use \(previewSelection.rawValue)")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(AppTheme.textPrimary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(AppTheme.accent.gradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                            .shadow(color: AppTheme.accent.opacity(0.3), radius: 16, x: 0, y: 8)
+                            .background(Color.clear)
+                            .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, horizontalPadding)
                 .padding(.top, 16)
                 .padding(.bottom, 20)
-                .background(.regularMaterial)
-                .shadow(color: Color.black.opacity(0.12), radius: 20, x: 0, y: -2)
+                .background(Color.clear)
+                .liquidGlass(.toolbar, tint: AppTheme.accent, tintOpacity: 0.07)
             }
         }
         .interactiveDismissDisabled(false)
@@ -209,23 +208,8 @@ private struct ModeCard: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(
-                        colorScheme == .dark
-                            ? AppTheme.controlBackground.opacity(0.6)
-                            : Color.white.opacity(0.9)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(accentColor.opacity(isSelected ? 0.08 : 0.03))
-                    )
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.1), radius: 16, x: 0, y: 8)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(isSelected ? accentColor.opacity(0.7) : AppTheme.outline.opacity(0.4), lineWidth: isSelected ? 2.5 : 1)
-            )
+            .background(Color.clear)
+            .liquidGlass(.card, tint: accentColor, tintOpacity: isSelected ? 0.08 : 0.05)
             .scaleEffect(isSelected ? 1.02 : 1.0)
             .animation(.spring(response: 0.36, dampingFraction: 0.82), value: isSelected)
         }

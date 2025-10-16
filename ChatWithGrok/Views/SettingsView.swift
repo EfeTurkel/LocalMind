@@ -369,13 +369,9 @@ struct SettingsView: View {
             content()
         }
         .padding(18)
-        .background(AppTheme.secondaryBackground.opacity(0.92))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
-                .stroke(AppTheme.outline)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 20, x: 0, y: 14)
+        .background(Color.clear)
+        .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
+        .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 10)
     }
 }
 

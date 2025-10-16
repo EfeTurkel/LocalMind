@@ -83,11 +83,11 @@ struct UpgradeView: View {
                         Text(TipStorage.shared.isTipAvailable(now: now) ? "Support Today" : "Completed")
                     }
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppTheme.textPrimary)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(TipStorage.shared.isTipAvailable(now: now) ? Color.accentColor : Color.gray)
-                    .cornerRadius(12)
+                    .background(Color.clear)
+                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
                 }
                 .padding(.horizontal)
                 .alert("Daily Support", isPresented: $showInfoAlert) {
@@ -164,8 +164,8 @@ struct UpgradeView: View {
                     }
                 }
                 .padding()
-                .background(.ultraThinMaterial)
-                .cornerRadius(16)
+                .background(Color.clear)
+                .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
                 .padding(.horizontal)
                 
                 Spacer(minLength: 8)

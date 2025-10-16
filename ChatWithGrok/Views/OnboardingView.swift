@@ -304,8 +304,8 @@ struct OnboardingView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.clear)
+        .liquidGlass(.toolbar, tint: AppTheme.accent, tintOpacity: 0.07)
         .padding(.horizontal)
         .padding(.bottom, 12)
         }

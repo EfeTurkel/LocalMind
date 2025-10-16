@@ -59,6 +59,9 @@ struct CategoryHeader: View {
                 .foregroundColor(.secondary)
                 .font(.caption)
         }
+        .padding(8)
+        .background(Color.clear)
+        .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.06)
     }
 }
 
@@ -83,6 +86,9 @@ struct MessageRow: View {
                 .font(.subheadline)
         }
         .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Color.clear)
+        .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
     }
