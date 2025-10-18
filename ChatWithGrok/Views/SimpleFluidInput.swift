@@ -14,94 +14,94 @@ struct SimpleFluidInput: View {
     private let maxHeight: CGFloat = 120
     private let cornerRadius: CGFloat = 22
     
-    @State private var displayedSuggestions: [String] = []
+    @State private var displayedSuggestions: [(text: String, icon: String)] = []
     
-    private let suggestionsByMode: [AIMode: [String]] = [
+    private let suggestionsByMode: [AIMode: [(text: String, icon: String)]] = [
         .general: [
-            "Explain complex topics simply",
-            "Summarize this article",
-            "Translate to another language",
-            "Fix grammar mistakes",
-            "Suggest gift ideas",
-            "Create a workout plan",
-            "Plan a healthy meal",
-            "Suggest productivity tips",
-            "Write motivational quote",
-            "Create checklist template"
+            ("Explain complex topics simply", "questionmark.circle"),
+            ("Summarize this article", "doc.text"),
+            ("Translate to another language", "globe"),
+            ("Fix grammar mistakes", "textformat.abc"),
+            ("Suggest gift ideas", "gift"),
+            ("Create a workout plan", "figure.strengthtraining.traditional"),
+            ("Plan a healthy meal", "fork.knife"),
+            ("Suggest productivity tips", "lightbulb"),
+            ("Write motivational quote", "quote.bubble"),
+            ("Create checklist template", "checklist")
         ],
         .coding: [
-            "Review and improve code",
-            "Debug this code snippet",
-            "Explain algorithm complexity",
-            "Refactor legacy code",
-            "Write unit tests",
-            "Optimize database query",
-            "Design API endpoints",
-            "Fix security vulnerabilities",
-            "Create code documentation",
-            "Suggest best practices",
-            "Design system architecture",
-            "Implement design pattern"
+            ("Review and improve code", "arrow.up.circle"),
+            ("Debug this code snippet", "ant"),
+            ("Explain algorithm complexity", "questionmark.circle"),
+            ("Refactor legacy code", "arrow.triangle.2.circlepath"),
+            ("Write unit tests", "checkmark.circle"),
+            ("Optimize database query", "chart.bar"),
+            ("Design API endpoints", "network"),
+            ("Fix security vulnerabilities", "shield"),
+            ("Create code documentation", "doc.text"),
+            ("Suggest best practices", "star"),
+            ("Design system architecture", "building.2"),
+            ("Implement design pattern", "puzzlepiece")
         ],
         .creative: [
-            "Generate creative names",
-            "Write social media captions",
-            "Generate story ideas",
-            "Write video script",
-            "Design logo concept",
-            "Create presentation outline",
-            "Design color palette",
-            "Generate slogan options",
-            "Write blog post ideas",
-            "Design brand strategy",
-            "Create character backstory",
-            "Write catchy headlines"
+            ("Generate creative names", "sparkles"),
+            ("Write social media captions", "bubble.left.and.bubble.right"),
+            ("Generate story ideas", "book"),
+            ("Write video script", "video"),
+            ("Design logo concept", "paintbrush"),
+            ("Create presentation outline", "presentation"),
+            ("Design color palette", "paintpalette"),
+            ("Generate slogan options", "quote.bubble"),
+            ("Write blog post ideas", "doc.text"),
+            ("Design brand strategy", "building.2"),
+            ("Create character backstory", "person"),
+            ("Write catchy headlines", "textformat")
         ],
         .academic: [
-            "Create a study schedule",
-            "Suggest book recommendations",
-            "Create quiz questions",
-            "Create learning roadmap",
-            "Create mind map",
-            "Write essay outline",
-            "Explain scientific concepts",
-            "Create bibliography",
-            "Summarize research paper",
-            "Create flashcards",
-            "Write thesis statement",
-            "Analyze historical events"
+            ("Create a study schedule", "calendar"),
+            ("Suggest book recommendations", "book"),
+            ("Create quiz questions", "questionmark.circle"),
+            ("Create learning roadmap", "map"),
+            ("Create mind map", "brain"),
+            ("Write essay outline", "doc.text"),
+            ("Explain scientific concepts", "atom"),
+            ("Create bibliography", "list.bullet"),
+            ("Summarize research paper", "doc.text"),
+            ("Create flashcards", "rectangle.stack"),
+            ("Write thesis statement", "textformat"),
+            ("Analyze historical events", "chart.bar")
         ],
         .math: [
-            "Solve complex equations",
-            "Explain mathematical proofs",
-            "Create practice problems",
-            "Visualize data patterns",
-            "Calculate statistics",
-            "Explain calculus concepts",
-            "Solve physics problems",
-            "Create formula sheet",
-            "Analyze probability",
-            "Design experiment",
-            "Interpret scientific data",
-            "Model mathematical systems"
+            ("Solve complex equations", "function"),
+            ("Explain mathematical proofs", "questionmark.circle"),
+            ("Create practice problems", "plus.circle"),
+            ("Visualize data patterns", "chart.bar"),
+            ("Calculate statistics", "chart.line.uptrend.xyaxis"),
+            ("Explain calculus concepts", "infinity"),
+            ("Solve physics problems", "atom"),
+            ("Create formula sheet", "doc.text"),
+            ("Analyze probability", "percent"),
+            ("Design experiment", "flask"),
+            ("Interpret scientific data", "chart.bar"),
+            ("Model mathematical systems", "building.2")
         ],
         .business: [
-            "Plan marketing strategy",
-            "Draft business proposal",
-            "Write a professional email",
-            "Write a cover letter",
-            "Create presentation outline",
-            "Write resume bullet points",
-            "Write meeting agenda",
-            "Suggest career advice",
-            "Create budget plan",
-            "Plan event timeline",
-            "Write interview questions",
-            "Suggest SEO keywords",
-            "Design workflow process",
-            "Write sales pitch",
-            "Analyze market trends",
-            "Create business plan"
+            ("Plan marketing strategy", "chart.bar"),
+            ("Draft business proposal", "doc.text"),
+            ("Write a professional email", "envelope"),
+            ("Write a cover letter", "doc.text"),
+            ("Create presentation outline", "presentation"),
+            ("Write resume bullet points", "list.bullet"),
+            ("Write meeting agenda", "calendar"),
+            ("Suggest career advice", "lightbulb"),
+            ("Create budget plan", "dollarsign.circle"),
+            ("Plan event timeline", "calendar"),
+            ("Write interview questions", "questionmark.circle"),
+            ("Suggest SEO keywords", "magnifyingglass"),
+            ("Design workflow process", "arrow.triangle.branch"),
+            ("Write sales pitch", "megaphone"),
+            ("Analyze market trends", "chart.line.uptrend.xyaxis"),
+            ("Create business plan", "building.2")
         ]
     ]
     
@@ -125,24 +125,24 @@ struct SimpleFluidInput: View {
             // Suggestions Panel (Liquid Glass) — paged, 2 per view, total up to 5
             if keyboardHeight == 0 && messages.isEmpty && currentInput.isEmpty {
                 let items = Array(displayedSuggestions.prefix(5))
-                let pages: [[String]] = stride(from: 0, to: items.count, by: 2).map { idx in
+                let pages: [[(text: String, icon: String)]] = stride(from: 0, to: items.count, by: 2).map { idx in
                     Array(items[idx..<min(idx+2, items.count)])
                 }
                 VStack(spacing: 8) {
                     TabView {
                         ForEach(0..<pages.count, id: \.self) { pageIndex in
                             HStack(spacing: 10) {
-                                ForEach(pages[pageIndex], id: \.self) { suggestion in
+                                ForEach(pages[pageIndex], id: \.text) { suggestion in
                                     Button(action: {
-                                        currentInput = suggestion
+                                        currentInput = suggestion.text
                                         let impact = UIImpactFeedbackGenerator(style: .light)
                                         impact.impactOccurred()
                                     }) {
                                         HStack(alignment: .center, spacing: 10) {
-                                            Image(systemName: "sparkles")
+                                            Image(systemName: suggestion.icon)
                                                 .font(.system(size: 14, weight: .semibold))
                                                 .foregroundColor(AppTheme.accent)
-                                            Text(suggestion)
+                                            Text(suggestion.text)
                                                 .font(.system(size: 15, weight: .semibold))
                                                 .foregroundColor(AppTheme.textPrimary)
                                                 .multilineTextAlignment(.leading)

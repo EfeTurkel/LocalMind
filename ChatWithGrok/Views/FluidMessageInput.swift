@@ -400,12 +400,12 @@ struct FluidSuggestionsView: View {
     @State private var animationTimer: Timer?
     
     private let suggestions = [
-        "Write code for",
-        "Explain how to",
-        "Help me understand",
-        "Generate a",
-        "Debug this code",
-        "Translate to"
+        ("Write code for", "function"),
+        ("Explain how to", "questionmark.circle"),
+        ("Help me understand", "lightbulb"),
+        ("Generate a", "plus.circle"),
+        ("Debug this code", "ant"),
+        ("Translate to", "globe")
     ]
     
     var body: some View {
@@ -413,10 +413,11 @@ struct FluidSuggestionsView: View {
             HStack(spacing: 8) {
                 ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
                     FluidSuggestionChip(
-                        text: suggestion,
+                        text: suggestion.0,
+                        icon: suggestion.1,
                         animationOffset: animationOffset + CGFloat(index) * 0.1
                     ) {
-                        onSuggestionTap(suggestion)
+                        onSuggestionTap(suggestion.0)
                     }
                 }
             }
@@ -461,6 +462,7 @@ struct FluidSuggestionsView: View {
 // MARK: - Fluid Suggestion Chip
 struct FluidSuggestionChip: View {
     let text: String
+    let icon: String
     let animationOffset: CGFloat
     let action: () -> Void
     
@@ -470,20 +472,26 @@ struct FluidSuggestionChip: View {
             impact.impactOccurred()
             action()
         }) {
-            Text(text)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(AppTheme.textPrimary)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(AppTheme.controlBackground.opacity(0.8))
-                        .overlay(
-                            Capsule()
-                                .stroke(AppTheme.outline.opacity(0.6), lineWidth: 1)
-                        )
-                        .scaleEffect(1.0 + sin(animationOffset) * 0.02)
-                )
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(AppTheme.accent)
+                
+                Text(text)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(AppTheme.textPrimary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(AppTheme.controlBackground.opacity(0.8))
+                    .overlay(
+                        Capsule()
+                            .stroke(AppTheme.outline.opacity(0.6), lineWidth: 1)
+                    )
+                    .scaleEffect(1.0 + sin(animationOffset) * 0.02)
+            )
         }
         .buttonStyle(FluidButtonStyle())
     }

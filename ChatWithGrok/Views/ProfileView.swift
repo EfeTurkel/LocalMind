@@ -117,7 +117,8 @@ struct ProfileView: View {
             }
             .padding(18)
             .background(Color.clear)
-            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
+            .background(AppTheme.controlBackground.opacity(0.3))
+            .cornerRadius(12)
         }
     }
     

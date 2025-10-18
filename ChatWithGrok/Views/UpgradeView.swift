@@ -87,7 +87,8 @@ struct UpgradeView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.clear)
-                    .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
+                    .background(AppTheme.controlBackground.opacity(0.3))
+                    .cornerRadius(8)
                 }
                 .padding(.horizontal)
                 .alert("Daily Support", isPresented: $showInfoAlert) {
@@ -165,7 +166,8 @@ struct UpgradeView: View {
                 }
                 .padding()
                 .background(Color.clear)
-                .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
+                .background(AppTheme.controlBackground.opacity(0.3))
+                .cornerRadius(12)
                 .padding(.horizontal)
                 
                 Spacer(minLength: 8)

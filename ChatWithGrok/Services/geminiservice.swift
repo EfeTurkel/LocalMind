@@ -89,13 +89,158 @@ class GeminiService {
         let avatar = UserDefaults.standard.string(forKey: "avatar") ?? "xai2_logo"
         let personality = UserDefaults.standard.string(forKey: "personality") ?? "default"
         let customInstructions = UserDefaults.standard.string(forKey: "customInstructions") ?? ""
+        let aiMemoryEnabled = UserDefaults.standard.bool(forKey: "aiMemoryEnabled")
+        let aiMemory = UserDefaults.standard.string(forKey: "aiMemory") ?? ""
         let modeRaw = UserDefaults.standard.string(forKey: "selectedAIMode") ?? AIMode.general.rawValue
         let mode = AIMode(rawValue: modeRaw) ?? .general
-        let base = "You are an AI assistant. Your avatar is \(avatar). Your personality is \(personality).\n\nCustom instructions: \(customInstructions)\n\n\(mode.systemPrompt)"
+        
+        var instructions = ""
+        if aiMemoryEnabled && !aiMemory.isEmpty {
+            instructions = "AI Memory (learned from conversations): \(aiMemory)"
+        } else {
+            instructions = "Custom instructions: \(customInstructions)"
+        }
+        
+        let base = "You are an AI assistant. Your avatar is \(avatar). Your personality is \(personality).\n\n\(instructions)\n\n\(mode.systemPrompt)"
         return base
     }
     
     private func cleanText(_ text: String) -> String {
         return text.replacingOccurrences(of: "**", with: "")
     }
+    
+    // MARK: - Chat Summary Functions
+    
+    /// Generates a title and description for a chat using Gemini 2.5 Flash Lite
+    func generateChatSummary(messages: [Message]) async throws -> (title: String, description: String) {
+        guard !apiKey.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        
+        // Ensure model exists with current API key
+        if model == nil { rebuildModel() }
+        guard model != nil else { throw URLError(.userAuthenticationRequired) }
+        
+        // Prepare messages for summary
+        let conversationText = messages.map { message in
+            let role = message.isUser ? "User" : "AI"
+            return "\(role): \(message.content)"
+        }.joined(separator: "\n")
+        
+        // Create summary prompt
+        let summaryPrompt = """
+        Please analyze this conversation and provide:
+        1. A concise title (max 50 characters) that captures the main topic
+        2. A brief description (max 100 characters) that summarizes what was discussed
+        
+        Conversation:
+        \(conversationText)
+        
+        Format your response as:
+        TITLE: [title here]
+        DESCRIPTION: [description here]
+        """
+        
+       // Use a temporary model for summary (without system instruction)
+       let summaryModel = GenerativeModel(
+           name: "gemini-2.0-flash-lite",
+           apiKey: apiKey,
+           generationConfig: GenerationConfig(
+               temperature: 0.3,
+               topP: 0.8,
+               topK: 20,
+               maxOutputTokens: 200,
+               responseMIMEType: "text/plain"
+           )
+       )
+        
+        do {
+            let response = try await summaryModel.generateContent(summaryPrompt)
+            let content = response.text ?? ""
+            
+            // Parse the response
+            let lines = content.components(separatedBy: .newlines)
+            var title = "Chat Conversation"
+            var description = "No description available"
+            
+            for line in lines {
+                if line.hasPrefix("TITLE:") {
+                    title = String(line.dropFirst(6)).trimmingCharacters(in: .whitespacesAndNewlines)
+                } else if line.hasPrefix("DESCRIPTION:") {
+                    description = String(line.dropFirst(12)).trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+            }
+            
+           return (title: title, description: description)
+       } catch {
+           print("Error generating chat summary: \(error)")
+           throw error
+       }
+   }
+   
+   /// Generates AI memory from chat history
+   func generateMemoryFromChats(_ chats: [[Message]]) async throws -> String {
+       guard !apiKey.isEmpty else {
+           throw URLError(.userAuthenticationRequired)
+       }
+       
+       // Ensure model exists with current API key
+       if model == nil { rebuildModel() }
+       guard model != nil else { throw URLError(.userAuthenticationRequired) }
+       
+       // Prepare conversation data for memory generation
+       let conversationData = chats.map { chat in
+           let messages = chat.map { message in
+               let role = message.isUser ? "User" : "AI"
+               return "\(role): \(message.content)"
+           }.joined(separator: "\n")
+           return "Chat: \(messages)"
+       }.joined(separator: "\n\n")
+       
+       // Create memory generation prompt
+       let memoryPrompt = """
+       Based on the following conversation history, create a personalized memory profile for this user. Extract key information about:
+       1. User's interests and topics they frequently discuss
+       2. User's preferences, likes, and dislikes
+       3. User's communication style and personality traits
+       4. Important personal details or context they've shared
+       5. Recurring themes or patterns in their conversations
+       
+       Format the memory as a concise, personalized instruction that will help the AI understand and remember this user better.
+       
+       Conversation History:
+       \(conversationData)
+       
+       Create a memory profile that captures the essence of this user's personality and preferences:
+       """
+       
+       // Use a temporary model for memory generation
+       let memoryModel = GenerativeModel(
+           name: "gemini-2.0-flash-lite",
+           apiKey: apiKey,
+           generationConfig: GenerationConfig(
+               temperature: 0.3,
+               topP: 0.8,
+               topK: 20,
+               maxOutputTokens: 500,
+               responseMIMEType: "text/plain"
+           )
+       )
+       
+       do {
+           let response = try await memoryModel.generateContent(memoryPrompt)
+           let memory = response.text ?? ""
+           
+           // Clean up the memory text
+           let cleanedMemory = memory
+               .replacingOccurrences(of: "Memory Profile:", with: "")
+               .replacingOccurrences(of: "Based on our conversations:", with: "")
+               .trimmingCharacters(in: .whitespacesAndNewlines)
+           
+           return cleanedMemory.isEmpty ? "No specific memory patterns identified yet." : cleanedMemory
+       } catch {
+           print("Error generating AI memory: \(error)")
+           throw error
+       }
+   }
 }

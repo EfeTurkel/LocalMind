@@ -39,13 +39,22 @@ class OpenAIService {
         let avatar = UserDefaults.standard.string(forKey: "avatar") ?? "xai2_logo"
         let personality = UserDefaults.standard.string(forKey: "personality") ?? "default"
         let customInstructions = UserDefaults.standard.string(forKey: "customInstructions") ?? ""
+        let aiMemoryEnabled = UserDefaults.standard.bool(forKey: "aiMemoryEnabled")
+        let aiMemory = UserDefaults.standard.string(forKey: "aiMemory") ?? ""
         let modeRaw = UserDefaults.standard.string(forKey: "selectedAIMode") ?? AIMode.general.rawValue
         let mode = AIMode(rawValue: modeRaw) ?? .general
+        
+        var instructions = ""
+        if aiMemoryEnabled && !aiMemory.isEmpty {
+            instructions = "AI Memory (learned from conversations): \(aiMemory)"
+        } else {
+            instructions = "Custom instructions: \(customInstructions)"
+        }
         
         return """
         You are an AI assistant. Your avatar is \(avatar). Your personality is \(personality).
         
-        Custom instructions: \(customInstructions)
+        \(instructions)
         
         \(mode.systemPrompt)
         """

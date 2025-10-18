@@ -19,7 +19,7 @@ struct AIModeSelector: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 28) {
                         header
-                        LazyVGrid(columns: columns, spacing: 18) {
+                        VStack(spacing: 18) {
                             ForEach(AIMode.allCases, id: \.self) { mode in
                                 ModeCard(
                                     mode: mode,
@@ -74,7 +74,8 @@ struct AIModeSelector: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(Color.clear)
-                            .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.08)
+                            .background(AppTheme.controlBackground.opacity(0.3))
+                            .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
                 }
@@ -82,7 +83,8 @@ struct AIModeSelector: View {
                 .padding(.top, 16)
                 .padding(.bottom, 20)
                 .background(Color.clear)
-                .liquidGlass(.toolbar, tint: AppTheme.accent, tintOpacity: 0.07)
+                .background(AppTheme.controlBackground.opacity(0.3))
+                .cornerRadius(12)
             }
         }
         .interactiveDismissDisabled(false)
@@ -209,9 +211,10 @@ private struct ModeCard: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.clear)
-            .liquidGlass(.card, tint: accentColor, tintOpacity: isSelected ? 0.08 : 0.05)
+            .background(AppTheme.controlBackground.opacity(isSelected ? 0.4 : 0.3))
+            .cornerRadius(12)
             .scaleEffect(isSelected ? 1.02 : 1.0)
-            .animation(.spring(response: 0.36, dampingFraction: 0.82), value: isSelected)
+            .animation(.easeInOut(duration: 0.2), value: isSelected)
         }
         .buttonStyle(.plain)
     }

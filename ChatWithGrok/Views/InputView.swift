@@ -30,12 +30,16 @@ struct InputView: View {
     
     // Örnek öneriler
     private let defaultSuggestions = [
-        Suggestion(text: "Write code for", category: .command),
-        Suggestion(text: "Explain how to", category: .command),
-        Suggestion(text: "Help me understand", category: .command),
-        Suggestion(text: "Generate a", category: .command),
-        Suggestion(text: "Debug this code", category: .popular),
-        Suggestion(text: "Translate to", category: .popular)
+        Suggestion(text: "Write code for", category: .code),
+        Suggestion(text: "Explain how to", category: .explain),
+        Suggestion(text: "Help me understand", category: .help),
+        Suggestion(text: "Generate a", category: .generate),
+        Suggestion(text: "Debug this code", category: .debug),
+        Suggestion(text: "Translate to", category: .translate),
+        Suggestion(text: "Summarize this", category: .popular),
+        Suggestion(text: "Analyze the", category: .popular),
+        Suggestion(text: "Optimize this", category: .popular),
+        Suggestion(text: "Create a", category: .generate)
     ]
     
     var body: some View {
@@ -224,7 +228,7 @@ struct ModernSuggestionChip: View {
             action()
         }) {
             HStack(spacing: 6) {
-                Image(systemName: suggestion.category.icon)
+                Image(systemName: suggestion.smartIcon)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(AppTheme.accent)
                 

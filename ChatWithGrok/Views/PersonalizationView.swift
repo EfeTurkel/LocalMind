@@ -5,6 +5,7 @@ struct PersonalizationView: View {
     @Binding var avatar: String
     @AppStorage("personality") private var personality = "default"
     @AppStorage("customInstructions") private var customInstructions = ""
+    @AppStorage("aiMemoryEnabled") private var aiMemoryEnabled = false
     @State private var showingImagePicker = false
     @State private var inputImage: UIImage?
     
@@ -51,11 +52,23 @@ struct PersonalizationView: View {
                     .pickerStyle(.segmented)
                 }
                 
+                Section("AI Memory") {
+                    Toggle("AI Memory Automatic", isOn: $aiMemoryEnabled)
+                        .toggleStyle(SwitchToggleStyle())
+                    
+                    Text("When enabled, AI will automatically learn from your chat history and create personalized instructions. Custom instructions will be disabled.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
                 Section("Custom Instructions") {
                     TextEditor(text: $customInstructions)
                         .frame(height: 150)
+                        .disabled(aiMemoryEnabled)
+                        .blur(radius: aiMemoryEnabled ? 2 : 0)
+                        .opacity(aiMemoryEnabled ? 0.5 : 1.0)
                     
-                    Text("Enter custom instructions for the AI's behavior and responses.")
+                    Text(aiMemoryEnabled ? "Custom instructions are disabled when AI Memory is enabled." : "Enter custom instructions for the AI's behavior and responses.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -114,6 +127,7 @@ struct PersonalizationView: View {
         avatar = "xai2_logo"
         personality = "default"
         customInstructions = ""
+        aiMemoryEnabled = false
         
         // Özel avatar resmini sil
         let fileManager = FileManager.default

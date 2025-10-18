@@ -21,6 +21,55 @@ struct SidebarContainer: View {
     let onToggleIncognito: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var summaryManager = ChatSummaryManager()
+    
+    // Helper functions for chat titles and descriptions
+    private func getChatTitle(for chat: [Message]) -> String {
+        let chatId = getChatId(chat)
+        return summaryManager.getSummary(for: chatId)?.title ?? chat.chatTitle
+    }
+    
+    private func getChatDescription(for chat: [Message]) -> String {
+        let chatId = getChatId(chat)
+        return summaryManager.getSummary(for: chatId)?.description ?? chat.chatDescription
+    }
+    
+    private func getChatId(_ chat: [Message]) -> String {
+        // Create a unique ID for the chat based on first message timestamp
+        guard let firstMessage = chat.first else { return UUID().uuidString }
+        return "\(firstMessage.timestamp.timeIntervalSince1970)"
+    }
+    
+    private func generateAISummariesForAllChats() async {
+        let geminiAPIKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
+        guard !geminiAPIKey.isEmpty else { return }
+        
+        for chat in savedChats {
+            let chatId = getChatId(chat)
+            
+            // Skip if we already have a summary for this chat in memory
+            if summaryManager.getSummary(for: chatId) != nil { continue }
+            
+            // Check if we have saved AI summary
+            if let savedSummary = getSavedAISummary(chatId: chatId) {
+                summaryManager.updateSummary(for: chatId, title: savedSummary.title, description: savedSummary.description)
+                continue
+            }
+            
+            let summary = await chat.generateAISummaryAsync()
+            summaryManager.updateSummary(for: chatId, title: summary.title, description: summary.description)
+        }
+    }
+    
+    private func getSavedAISummary(chatId: String) -> (title: String, description: String)? {
+        let key = "aiSummary_\(chatId)"
+        guard let summaryData = UserDefaults.standard.dictionary(forKey: key),
+              let title = summaryData["title"] as? String,
+              let description = summaryData["description"] as? String else {
+            return nil
+        }
+        return (title: title, description: description)
+    }
 
     var body: some View {
         GeometryReader { geometry in
@@ -39,10 +88,19 @@ struct SidebarContainer: View {
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.clear)
-            .liquidGlass(.surface, tint: AppTheme.accent, tintOpacity: 0.05)
+            .background(AppTheme.elevatedBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 0)
+                    .stroke(AppTheme.outline.opacity(0.1), lineWidth: 1)
+            )
             .onAppear {
                 // Ensure keyboard is dismissed when sidebar is presented
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                
+                // Generate AI summaries for all chats
+                Task {
+                    await generateAISummariesForAllChats()
+                }
             }
         }
     }
@@ -55,7 +113,7 @@ struct SidebarContainer: View {
                     .foregroundColor(AppTheme.textPrimary)
                 Spacer()
                 Button(action: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         isOpen = false
                     }
                 }) {
@@ -86,7 +144,7 @@ struct SidebarContainer: View {
                 onSettings: { showingSettings = true },
                 onProfile: { showingProfile = true },
                 onHome: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         isOpen = false
                     }
                     onReturnHome()
@@ -101,7 +159,7 @@ struct SidebarContainer: View {
         VStack(alignment: .leading, spacing: 16) {
             if isIncognitoMode {
                 Button(action: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         onToggleIncognito()
                     }
                 }) {
@@ -131,10 +189,10 @@ struct SidebarContainer: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(16)
-                    .background(Color.clear)
-                    .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
+                    .background(AppTheme.controlBackground.opacity(0.3))
+                    .cornerRadius(8)
                 } else {
-                    LazyVStack(spacing: 12) {
+                    VStack(spacing: 12) {
                         ForEach(filteredChats().indices, id: \.self) { index in
                             let chat = filteredChats()[index]
                             chatRow(chat)
@@ -181,17 +239,17 @@ struct SidebarContainer: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(AppTheme.accent)
                     }
-                    Text(chat.first?.content ?? "Untitled Chat")
-                        .font(.system(size: 14, weight: .semibold))
-                        .lineLimit(1)
-                        .foregroundColor(AppTheme.textPrimary)
-                }
-
-                if let lastMessage = chat.last {
-                    Text(lastMessage.content)
-                        .font(.system(size: 13))
-                        .foregroundColor(AppTheme.textSecondary)
-                        .lineLimit(1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(getChatTitle(for: chat))
+                            .font(.system(size: 14, weight: .semibold))
+                            .lineLimit(1)
+                            .foregroundColor(AppTheme.textPrimary)
+                        
+                        Text(getChatDescription(for: chat))
+                            .font(.system(size: 12, weight: .regular))
+                            .lineLimit(1)
+                            .foregroundColor(AppTheme.textSecondary)
+                    }
                 }
 
                 HStack(spacing: 8) {
@@ -206,8 +264,8 @@ struct SidebarContainer: View {
                 }
             }
             .padding(14)
-            .background(Color.clear)
-            .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.06)
+            .background(AppTheme.controlBackground.opacity(0.3))
+            .cornerRadius(8)
             .contextMenu {
                 Button(role: .destructive) {
                     onDeleteChat(chat)
@@ -232,7 +290,14 @@ struct SidebarContainer: View {
         }
 
         let filtered = savedChats.filter { chat in
-            chat.contains { $0.content.localizedCaseInsensitiveContains(query) }
+            // Search in message content
+            let contentMatch = chat.contains { $0.content.localizedCaseInsensitiveContains(query) }
+            
+            // Search in AI-generated title and description
+            let titleMatch = getChatTitle(for: chat).localizedCaseInsensitiveContains(query)
+            let descriptionMatch = getChatDescription(for: chat).localizedCaseInsensitiveContains(query)
+            
+            return contentMatch || titleMatch || descriptionMatch
         }
         return sortedChats(filtered)
     }

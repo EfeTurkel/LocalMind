@@ -275,7 +275,7 @@ struct SettingsView: View {
         .preferredColorScheme(getPreferredColorScheme())
         .onChange(of: systemColorScheme) { oldValue, newValue in
             if preferredColorScheme == 0 {
-                withAnimation {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     NotificationCenter.default.post(
                         name: NSNotification.Name("UpdateColorScheme"),
                         object: nil
@@ -370,7 +370,8 @@ struct SettingsView: View {
         }
         .padding(18)
         .background(Color.clear)
-        .liquidGlass(.card, tint: AppTheme.accent, tintOpacity: 0.05)
+        .background(AppTheme.controlBackground.opacity(0.3))
+        .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 10)
     }
 }
@@ -841,13 +842,13 @@ struct AdvancedSettingsView: View {
         }
         
         // Show notification
-        withAnimation {
+        withAnimation(.easeInOut(duration: 0.2)) {
             showingSaveNotification = true
         }
         
         // Hide after delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation {
+            withAnimation(.easeInOut(duration: 0.2)) {
                 showingSaveNotification = false
             }
         }

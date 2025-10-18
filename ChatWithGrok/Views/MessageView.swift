@@ -26,7 +26,7 @@ struct MessageView: View {
 
                 // Grok mesajları sola yaslanacak
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(selectedAIModel.capitalized)
+                    Text((message.aiModel.isEmpty ? selectedAIModel : message.aiModel).capitalized)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(AppTheme.textSecondary)
                     

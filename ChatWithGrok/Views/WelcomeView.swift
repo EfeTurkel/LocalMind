@@ -6,8 +6,13 @@ struct WelcomeView: View {
     @Binding var showingModeSelector: Bool
     @AppStorage("userName") private var userName = ""
     @AppStorage("selectedAIMode") private var storedModeRaw: String = AIMode.general.rawValue
+    @AppStorage("aiMemoryEnabled") private var aiMemoryEnabled = false
     @State private var animateCards = false
     @State private var animateHeader = false
+    @State private var animateAIMemory = false
+    @State private var showAIMemoryFeature = false
+    @StateObject private var summaryManager = ChatSummaryManager()
+    @State private var pinnedChats: [[Message]] = []
     private let uiScale: CGFloat = 0.92
     
     private let quickActions: [QuickActionItem] = [
@@ -58,6 +63,7 @@ struct WelcomeView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 0)
                 modernHeroSection
+                aiMemoryFeatureCard
                 minimalPinnedChats
                 Spacer(minLength: 0)
             }
@@ -73,6 +79,35 @@ struct WelcomeView: View {
             }
             withAnimation(AppTheme.springSlow.delay(0.2)) {
                 animateCards = true
+            }
+            withAnimation(AppTheme.springSlow.delay(0.3)) {
+                animateAIMemory = true
+            }
+            
+            // Load pinned chats
+            loadPinnedChats()
+            
+            // Generate AI summaries for pinned chats
+            Task {
+                await generateAISummariesForPinnedChats()
+            }
+            
+            // Show AI Memory feature if not enabled
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if !aiMemoryEnabled {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showAIMemoryFeature = true
+                    }
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("PinnedChatsUpdated"))) { _ in
+            // Reload pinned chats when they are updated
+            loadPinnedChats()
+            
+            // Regenerate AI summaries for updated pinned chats
+            Task {
+                await generateAISummariesForPinnedChats()
             }
         }
     }
@@ -206,6 +241,135 @@ struct WelcomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    // MARK: - AI Memory Feature Card
+    private var aiMemoryFeatureCard: some View {
+        Group {
+            if !aiMemoryEnabled && showAIMemoryFeature {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 12) {
+                        // Animated Brain Icon
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.purple.opacity(0.2), Color.blue.opacity(0.15)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 48, height: 48)
+                                .scaleEffect(animateAIMemory ? 1.0 : 0.8)
+                                .animation(.spring(response: 0.6, dampingFraction: 0.7).repeatForever(autoreverses: true), value: animateAIMemory)
+                            
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.purple)
+                                .scaleEffect(animateAIMemory ? 1.0 : 0.9)
+                                .animation(.spring(response: 0.5, dampingFraction: 0.6).repeatForever(autoreverses: true), value: animateAIMemory)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Text("AI Memory Automatic")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(AppTheme.textPrimary)
+                                
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.purple)
+                                    .scaleEffect(animateAIMemory ? 1.0 : 0.8)
+                                    .animation(.spring(response: 0.4, dampingFraction: 0.6).repeatForever(autoreverses: true), value: animateAIMemory)
+                            }
+                            
+                            Text("AI learns from your conversations and creates personalized responses")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(AppTheme.textSecondary)
+                                .lineLimit(2)
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                aiMemoryEnabled = true
+                                showAIMemoryFeature = false
+                            }
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [.purple, .blue],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: 80, height: 36)
+                                
+                                Text("Enable")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // Feature Benefits
+                    VStack(alignment: .leading, spacing: 8) {
+                        FeatureBenefitRow(
+                            icon: "person.crop.circle.badge.checkmark",
+                            title: "Personalized Responses",
+                            description: "AI remembers your preferences and style"
+                        )
+                        
+                        FeatureBenefitRow(
+                            icon: "arrow.clockwise",
+                            title: "Continuous Learning",
+                            description: "Gets smarter with every conversation"
+                        )
+                        
+                        FeatureBenefitRow(
+                            icon: "lock.shield",
+                            title: "Privacy First",
+                            description: "All data stays on your device"
+                        )
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.purple.opacity(0.08),
+                                    Color.blue.opacity(0.05)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [.purple.opacity(0.3), .blue.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        )
+                )
+                .shadow(color: .purple.opacity(0.15), radius: 20, x: 0, y: 10)
+                .opacity(showAIMemoryFeature ? 1 : 0)
+                .scaleEffect(showAIMemoryFeature ? 1 : 0.9)
+                .offset(y: showAIMemoryFeature ? 0 : 20)
+            }
+        }
+    }
+    
     // MARK: - Minimal Pinned Chats (Liquid Glass)
     private var minimalPinnedChats: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -215,14 +379,7 @@ struct WelcomeView: View {
                 .textCase(.uppercase)
                 .kerning(0.5)
 
-            let pinnedIds = StorageManager.shared.loadPinnedIdentifiers()
-            let allChats = StorageManager.shared.loadAllChats()
-            let pinned = allChats.filter { chat in
-                if let id = StorageManager.shared.identifier(for: chat) { return pinnedIds.contains(id) }
-                return false
-            }
-
-            if pinned.isEmpty {
+            if pinnedChats.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "pin.slash")
                         .font(.system(size: 14, weight: .semibold))
@@ -237,7 +394,7 @@ struct WelcomeView: View {
                 .liquidGlass(.chip, tint: AppTheme.accent, tintOpacity: 0.06)
             } else {
                 VStack(spacing: 8) {
-                    ForEach(pinned.prefix(3), id: \.[0].id) { chat in
+                    ForEach(pinnedChats.prefix(3), id: \.[0].id) { chat in
                         Button(action: {
                             // Load selected pinned chat into current session via Notification
                             NotificationCenter.default.post(name: Notification.Name("LoadPinnedChat"), object: chat)
@@ -248,16 +405,14 @@ struct WelcomeView: View {
                                     .foregroundColor(AppTheme.accent)
                                     .padding(.top, 2)
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(chat.first?.content ?? "Untitled Chat")
+                                    Text(getChatTitle(for: chat))
                                         .font(.system(size: 14, weight: .semibold))
                                         .foregroundColor(AppTheme.textPrimary)
                                         .lineLimit(1)
-                                    if let last = chat.last {
-                                        Text(last.content)
-                                            .font(.system(size: 13))
-                                            .foregroundColor(AppTheme.textSecondary)
-                                            .lineLimit(1)
-                                    }
+                                    Text(getChatDescription(for: chat))
+                                        .font(.system(size: 13))
+                                        .foregroundColor(AppTheme.textSecondary)
+                                        .lineLimit(1)
                                 }
                                 Spacer(minLength: 8)
                                 if let last = chat.last {
@@ -347,6 +502,65 @@ struct WelcomeView: View {
         default:
             return "Good night\(name)"
         }
+    }
+    
+    // MARK: - Helper Functions for AI Summaries
+    
+    private func getChatTitle(for chat: [Message]) -> String {
+        let chatId = getChatId(chat)
+        return summaryManager.getSummary(for: chatId)?.title ?? chat.chatTitle
+    }
+    
+    private func getChatDescription(for chat: [Message]) -> String {
+        let chatId = getChatId(chat)
+        return summaryManager.getSummary(for: chatId)?.description ?? chat.chatDescription
+    }
+    
+    private func getChatId(_ chat: [Message]) -> String {
+        guard let firstMessage = chat.first else { return UUID().uuidString }
+        return "\(firstMessage.timestamp.timeIntervalSince1970)"
+    }
+    
+    private func loadPinnedChats() {
+        let pinnedIds = StorageManager.shared.loadPinnedIdentifiers()
+        let allChats = StorageManager.shared.loadAllChats()
+        pinnedChats = allChats.filter { chat in
+            if let id = StorageManager.shared.identifier(for: chat) { 
+                return pinnedIds.contains(id) 
+            }
+            return false
+        }
+    }
+    
+    private func generateAISummariesForPinnedChats() async {
+        let geminiAPIKey = UserDefaults.standard.string(forKey: "geminiAPIKey") ?? ""
+        guard !geminiAPIKey.isEmpty else { return }
+        
+        for chat in pinnedChats {
+            let chatId = getChatId(chat)
+            
+            // Skip if we already have a summary for this chat in memory
+            if summaryManager.getSummary(for: chatId) != nil { continue }
+            
+            // Check if we have saved AI summary
+            if let savedSummary = getSavedAISummary(chatId: chatId) {
+                summaryManager.updateSummary(for: chatId, title: savedSummary.title, description: savedSummary.description)
+                continue
+            }
+            
+            let summary = await chat.generateAISummaryAsync()
+            summaryManager.updateSummary(for: chatId, title: summary.title, description: summary.description)
+        }
+    }
+    
+    private func getSavedAISummary(chatId: String) -> (title: String, description: String)? {
+        let key = "aiSummary_\(chatId)"
+        guard let summaryData = UserDefaults.standard.dictionary(forKey: key),
+              let title = summaryData["title"] as? String,
+              let description = summaryData["description"] as? String else {
+            return nil
+        }
+        return (title: title, description: description)
     }
 }
 
@@ -468,6 +682,40 @@ private struct ModernPromptChip: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Feature Benefit Row
+
+private struct FeatureBenefitRow: View {
+    let icon: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.purple.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.purple)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Text(description)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(AppTheme.textSecondary)
+            }
+            
+            Spacer()
+        }
     }
 }
 

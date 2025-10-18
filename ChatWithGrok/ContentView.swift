@@ -49,6 +49,8 @@ struct ContentView: View {
     // Banner state for replies arriving while on home
     @State private var homeNewMessageAvailable: Bool = false
     @State private var pendingChatForHome: [Message] = []
+    @State private var isLandscape: Bool = false
+    @State private var isGeneratingMemory = false
     
     let FREE_DAILY_LIMIT = Int.max
 
@@ -65,7 +67,7 @@ struct ContentView: View {
             if !isSidebarOpen && !(isIncognitoMode && messages.isEmpty) {
                 GeometryReader { geometry in
                     Button(action: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             isSidebarOpen = true
                         }
                     }) {
@@ -99,16 +101,28 @@ struct ContentView: View {
     private var topToolbar: some View {
         GeometryReader { geometry in
             HStack {
-                toolbarSidebarButton
-                if !isSidebarOpen {
-                    Spacer()
-                    modelSelectorButton
-                        .transition(.opacity.combined(with: .scale))
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    toolbarSidebarButton
+                    if !isSidebarOpen {
+                        Spacer()
+                        modelSelectorButton
+                            .transition(.opacity.combined(with: .scale))
+                    }
+                } else {
+                    // iPad: Show sidebar button only when closed, model selector in center
+                    if !isSidebarOpen {
+                        toolbarSidebarButton
+                        Spacer()
+                        modelSelectorButton
+                    } else {
+                        Spacer()
+                        modelSelectorButton
+                    }
                 }
                 Spacer()
                 toolbarGhostButton
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, UIDevice.current.userInterfaceIdiom == .pad ? 24 : 12)
             .padding(.top, 6) // place buttons at the very top
             .frame(height: 56, alignment: .top)
         }
@@ -118,7 +132,7 @@ struct ContentView: View {
     // MARK: - Bottom Home Bar (Liquid Glass)
     private var bottomHomeBar: some View {
         GeometryReader { geometry in
-            HStack(spacing: 12) {
+            HStack(spacing: UIDevice.current.userInterfaceIdiom == .pad ? 16 : 12) {
                 // History
                 Button(action: {
                     let impact = UIImpactFeedbackGenerator(style: .light)
@@ -141,7 +155,7 @@ struct ContentView: View {
                 }
                 .accessibilityLabel("Open chat history")
 
-                Spacer(minLength: 12)
+                Spacer(minLength: UIDevice.current.userInterfaceIdiom == .pad ? 16 : 12)
 
                 // Mode selector
                 Button(action: {
@@ -165,7 +179,7 @@ struct ContentView: View {
                 }
                 .accessibilityLabel("Choose AI mode")
 
-                Spacer(minLength: 12)
+                Spacer(minLength: UIDevice.current.userInterfaceIdiom == .pad ? 16 : 12)
 
                 // Settings
                 Button(action: {
@@ -183,7 +197,7 @@ struct ContentView: View {
                 }
                 .accessibilityLabel("Open settings")
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, UIDevice.current.userInterfaceIdiom == .pad ? 24 : 16)
             .padding(.bottom, max(geometry.safeAreaInsets.bottom, 10) + 8)
         }
     }
@@ -191,9 +205,24 @@ struct ContentView: View {
     // MARK: - Toolbar Buttons (aligned and consistent look)
     private var toolbarSidebarButton: some View {
         Group {
-            if !isSidebarOpen {
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                // iPad: Always show, toggle functionality
                 Button(action: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isSidebarOpen.toggle()
+                    }
+                }) {
+                    Image(systemName: isSidebarOpen ? "sidebar.leading" : "sidebar.leading")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(AppTheme.textPrimary)
+                        .frame(width: 46, height: 46)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(isSidebarOpen ? "Close sidebar" : "Open sidebar")
+            } else if !isSidebarOpen {
+                // iPhone: Only show when sidebar is closed
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         isSidebarOpen = true
                     }
                 }) {
@@ -205,7 +234,7 @@ struct ContentView: View {
                 }
                 .accessibilityLabel("Open sidebar")
             } else {
-                // Preserve layout when hidden
+                // iPhone: Preserve layout when hidden
                 Color.clear.frame(width: 46, height: 46)
             }
         }
@@ -243,12 +272,12 @@ struct ContentView: View {
         Button(action: {
             if messages.isEmpty {
                 // Ghost button behavior - toggle incognito mode
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     isIncognitoMode.toggle()
                 }
             } else {
                 // Home button behavior - clear messages and return to main screen
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     messages.removeAll()
                     currentInput = ""
                 }
@@ -369,79 +398,241 @@ struct ContentView: View {
         }
     }
     
-    var body: some View {
-        NavigationView {
-            ZStack(alignment: .leading) {
-                mainBackground
-                chatLayer
-                sidebarLayer
+    // MARK: - iPad Layout Components
+    private var iPadSidebar: some View {
+        SidebarContainer(
+            isOpen: $isSidebarOpen, // Toggleable on iPad too
+            selectedAIMode: $selectedAIMode,
+            showingModeSelector: $showingModeSelector,
+            showingUpgradeView: $showingUpgradeView,
+            showingChatHistory: $showingChatHistory,
+            showingSettings: $showingSettings,
+            showingProfile: $showingProfile,
+            searchText: $sidebarSearchText,
+            savedChats: $sidebarSavedChats,
+            pinnedIdentifiers: $sidebarPinnedIdentifiers,
+            isIncognitoMode: isIncognitoMode,
+            dailyMessageCount: dailyMessageCount,
+            FREE_DAILY_LIMIT: FREE_DAILY_LIMIT,
+            onSelectChat: handleChatSelection,
+            onDeleteChat: handleChatDeletion,
+            onReturnHome: handleReturnHome,
+            onToggleIncognito: handleToggleIncognito
+        )
+        .frame(minWidth: isLandscape ? 250 : 300, maxWidth: isLandscape ? 350 : 400)
+    }
+    
+    private var iPadDetailView: some View {
+        ZStack(alignment: .leading) {
+            mainBackground
+            chatLayer
+        }
+        .contentShape(Rectangle())
+        .overlay(alignment: .top) {
+            GeometryReader { geo in
+                AppTheme.elevatedBackground
+                    .frame(height: geo.safeAreaInsets.top)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
             }
-            .contentShape(Rectangle())
-            // Solid cap under status bar to eliminate any gradient/material bleed (uniform color across left/right)
-            .overlay(alignment: .top) {
-                GeometryReader { geo in
-                    AppTheme.elevatedBackground
-                        .frame(height: geo.safeAreaInsets.top)
-                        .ignoresSafeArea(edges: .top)
-                        .allowsHitTesting(false)
-                }
-            }
-            // Unified top toolbar
-            .overlay(alignment: .top) { topToolbar }
-            .overlay(alignment: .leading) {
-                if isSidebarOpen && !(isIncognitoMode && messages.isEmpty) {
-                    HStack(spacing: 0) {
-                        Color.clear.frame(width: 300)
-                        Color.black.opacity(0.001)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    isSidebarOpen = false
-                                }
+        }
+        .overlay(alignment: .top) { topToolbar }
+        .overlay(alignment: .leading) {
+            if isSidebarOpen && !(isIncognitoMode && messages.isEmpty) {
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: isLandscape ? 250 : 300)
+                    Color.black.opacity(0.001)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isSidebarOpen = false
                             }
-                    }
-                    .ignoresSafeArea()
+                        }
                 }
+                .ignoresSafeArea()
             }
-            
-            .onTapGesture {
-                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+    
+    // MARK: - iPad Event Handlers
+    private func handleChatSelection(_ chat: [Message]) {
+        let restoredMessages: [Message] = chat.map { message in
+            Message(
+                content: message.content,
+                isUser: message.isUser,
+                timestamp: message.timestamp,
+                category: message.category,
+                isLoading: false,
+                aiModel: message.aiModel
+            )
+        }
+        messages = restoredMessages
+        isLoading = false
+        currentInput = ""
+    }
+    
+    private func handleChatDeletion(_ chat: [Message]) {
+        if let index = sidebarSavedChats.firstIndex(where: { $0.first?.id == chat.first?.id && $0.last?.id == chat.last?.id }) {
+            StorageManager.shared.deleteChat(at: index)
+            refreshSidebarChats()
+        }
+    }
+    
+    private func handleReturnHome() {
+        messages.removeAll()
+        currentInput = ""
+    }
+    
+    private func handleToggleIncognito() {
+        isIncognitoMode.toggle()
+    }
+    
+    private func updateOrientation(geometry: GeometryProxy) {
+        isLandscape = geometry.size.width > geometry.size.height
+    }
+    
+    // MARK: - Main Views with Modifiers
+    private var iPadView: some View {
+        GeometryReader { geometry in
+            NavigationSplitView(columnVisibility: .constant(isLandscape ? .all : .all)) {
+                iPadSidebar
+            } detail: {
+                iPadDetailView
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showingSettings) {
-                SettingsView(apiKey: $apiKey)
+            .onAppear {
+                updateOrientation(geometry: geometry)
             }
-            .sheet(isPresented: .constant(!hasSeenOnboarding)) {
-                OnboardingView(hasSeenOnboarding: $hasSeenOnboarding)
+            .onChange(of: geometry.size) { _, _ in
+                updateOrientation(geometry: geometry)
             }
-            .sheet(isPresented: .constant(!hasAPIKey && hasSeenOnboarding)) {
-                APIKeySetupView(hasAPIKey: $hasAPIKey, apiKey: $apiKey, openAIAPIKey: $openAIAPIKey)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(apiKey: $apiKey)
+        }
+        .sheet(isPresented: .constant(!hasSeenOnboarding)) {
+            OnboardingView(hasSeenOnboarding: $hasSeenOnboarding)
+        }
+        .sheet(isPresented: .constant(!hasAPIKey && hasSeenOnboarding)) {
+            APIKeySetupView(hasAPIKey: $hasAPIKey, apiKey: $apiKey, openAIAPIKey: $openAIAPIKey)
+        }
+        .sheet(isPresented: $showingUpgradeView) {
+            UpgradeView()
+        }
+        .sheet(isPresented: $showingModeSelector) {
+            AIModeSelector(selectedMode: $selectedAIMode)
+        }
+        .sheet(isPresented: $showingModelSelector) {
+            ModelSelectorView(selectedModel: $selectedAIModel)
+        }
+        .sheet(isPresented: $showingLimitPopup) {
+            MessageLimitPopupView(
+                usedMessages: dailyMessageCount,
+                remainingMessages: FREE_DAILY_LIMIT - dailyMessageCount,
+                totalLimit: FREE_DAILY_LIMIT,
+                showingUpgradeView: $showingUpgradeView
+            )
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView()
+        }
+        .sheet(isPresented: $showingChatHistory) {
+            ChatHistoryView(currentMessages: $messages)
+        }
+        .preferredColorScheme(activeColorScheme)
+    }
+    
+    private var iPhoneView: some View {
+        NavigationView {
+            iPhoneMainView
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsView(apiKey: $apiKey)
+        }
+        .sheet(isPresented: .constant(!hasSeenOnboarding)) {
+            OnboardingView(hasSeenOnboarding: $hasSeenOnboarding)
+        }
+        .sheet(isPresented: .constant(!hasAPIKey && hasSeenOnboarding)) {
+            APIKeySetupView(hasAPIKey: $hasAPIKey, apiKey: $apiKey, openAIAPIKey: $openAIAPIKey)
+        }
+        .sheet(isPresented: $showingUpgradeView) {
+            UpgradeView()
+        }
+        .sheet(isPresented: $showingModeSelector) {
+            AIModeSelector(selectedMode: $selectedAIMode)
+        }
+        .sheet(isPresented: $showingModelSelector) {
+            ModelSelectorView(selectedModel: $selectedAIModel)
+        }
+        .sheet(isPresented: $showingLimitPopup) {
+            MessageLimitPopupView(
+                usedMessages: dailyMessageCount,
+                remainingMessages: FREE_DAILY_LIMIT - dailyMessageCount,
+                totalLimit: FREE_DAILY_LIMIT,
+                showingUpgradeView: $showingUpgradeView
+            )
+        }
+        .sheet(isPresented: $showingProfile) {
+            ProfileView()
+        }
+        .sheet(isPresented: $showingChatHistory) {
+            ChatHistoryView(currentMessages: $messages)
+        }
+        .preferredColorScheme(activeColorScheme)
+    }
+    
+    // MARK: - iPhone Layout Components
+    private var iPhoneMainView: some View {
+        ZStack(alignment: .leading) {
+            mainBackground
+            chatLayer
+            sidebarLayer
+        }
+        .contentShape(Rectangle())
+        // Solid cap under status bar to eliminate any gradient/material bleed (uniform color across left/right)
+        .overlay(alignment: .top) {
+            GeometryReader { geo in
+                AppTheme.elevatedBackground
+                    .frame(height: geo.safeAreaInsets.top)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
             }
-            .sheet(isPresented: $showingUpgradeView) {
-                UpgradeView()
+        }
+        // Unified top toolbar
+        .overlay(alignment: .top) { topToolbar }
+        .overlay(alignment: .leading) {
+            if isSidebarOpen && !(isIncognitoMode && messages.isEmpty) {
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: 300)
+                    Color.black.opacity(0.001)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isSidebarOpen = false
+                            }
+                        }
+                }
+                .ignoresSafeArea()
             }
-            .sheet(isPresented: $showingModeSelector) {
-                AIModeSelector(selectedMode: $selectedAIMode)
+        }
+        .onTapGesture {
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+    
+    var body: some View {
+        Group {
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                iPadView
+            } else {
+                iPhoneView
             }
-            .sheet(isPresented: $showingModelSelector) {
-                ModelSelectorView(selectedModel: $selectedAIModel)
-            }
-            .sheet(isPresented: $showingLimitPopup) {
-                MessageLimitPopupView(
-                    usedMessages: dailyMessageCount,
-                    remainingMessages: FREE_DAILY_LIMIT - dailyMessageCount,
-                    totalLimit: FREE_DAILY_LIMIT,
-                    showingUpgradeView: $showingUpgradeView
-                )
-            }
-            .sheet(isPresented: $showingProfile) {
-                ProfileView()
-            }
-            .sheet(isPresented: $showingChatHistory) {
-                ChatHistoryView(currentMessages: $messages)
-            }
-            .preferredColorScheme(activeColorScheme)
         }
         .statusBarStyle(activeColorScheme == .dark ? .lightContent : .darkContent)
         .onChange(of: systemColorScheme) { oldValue, newValue in
@@ -465,6 +656,16 @@ struct ContentView: View {
             hasAPIKey = !apiKey.isEmpty || !openAIAPIKey.isEmpty || !claudeAPIKey.isEmpty || !(UserDefaults.standard.string(forKey: "geminiAPIKey") ?? "").isEmpty
             configureStatusBar()
             refreshSidebarChats()
+            
+            // Generate AI memory on app launch if enabled
+            Task {
+                let aiMemoryEnabled = UserDefaults.standard.bool(forKey: "aiMemoryEnabled")
+                guard aiMemoryEnabled else { return }
+                
+                let allChats = StorageManager.shared.loadAllChats()
+                let memory = await AIMemoryService.shared.generateMemoryFromChats(allChats)
+                AIMemoryService.shared.saveMemory(memory)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
             let keyboardFrame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
@@ -480,7 +681,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("LoadPinnedChat"))) { note in
             if let chat = note.object as? [Message] {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                withAnimation(.easeInOut(duration: 0.25)) {
                     messages = chat
                     isLoading = false
                     currentInput = ""
@@ -502,7 +703,7 @@ struct ContentView: View {
             }
         }
         .onChange(of: isIncognitoMode) { wasIncognito, nowIncognito in
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.easeInOut(duration: 0.25)) {
                 if nowIncognito {
                     // Snapshot current minimalHome before forcing minimal mode
                     minimalHomeWasOnBeforeIncognito = minimalHome
@@ -596,7 +797,7 @@ struct ContentView: View {
     }
 
     private var sidebarLayer: some View {
-        return SidebarContainer(
+        SidebarContainer(
             isOpen: $isSidebarOpen,
             selectedAIMode: $selectedAIMode,
             showingModeSelector: $showingModeSelector,
@@ -610,42 +811,10 @@ struct ContentView: View {
             isIncognitoMode: isIncognitoMode,
             dailyMessageCount: dailyMessageCount,
             FREE_DAILY_LIMIT: FREE_DAILY_LIMIT,
-            onSelectChat: { chat in
-                let restoredMessages: [Message] = chat.map { message in
-                    Message(
-                        content: message.content,
-                        isUser: message.isUser,
-                        timestamp: message.timestamp,
-                        category: message.category,
-                        isLoading: false,
-                        aiModel: message.aiModel
-                    )
-                }
-
-                messages = restoredMessages
-                isLoading = false
-                currentInput = ""
-
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    isSidebarOpen = false
-                }
-            },
-            onDeleteChat: { chat in
-                if let index = sidebarSavedChats.firstIndex(where: { $0.first?.id == chat.first?.id && $0.last?.id == chat.last?.id }) {
-                    StorageManager.shared.deleteChat(at: index)
-                    refreshSidebarChats()
-                }
-            },
-            onReturnHome: {
-                messages.removeAll()
-                currentInput = ""
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    isSidebarOpen = false
-                }
-            },
-            onToggleIncognito: {
-                isIncognitoMode.toggle()
-            }
+            onSelectChat: handleSidebarChatSelection,
+            onDeleteChat: handleSidebarChatDeletion,
+            onReturnHome: handleSidebarReturnHome,
+            onToggleIncognito: handleSidebarToggleIncognito
         )
         .frame(width: 300)
         .offset(x: isSidebarOpen ? 0 : -300)
@@ -664,6 +833,47 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
+    }
+    
+    // MARK: - Sidebar Event Handlers (optimized)
+    private func handleSidebarChatSelection(_ chat: [Message]) {
+        let restoredMessages: [Message] = chat.map { message in
+            Message(
+                content: message.content,
+                isUser: message.isUser,
+                timestamp: message.timestamp,
+                category: message.category,
+                isLoading: false,
+                aiModel: message.aiModel
+            )
+        }
+        
+        messages = restoredMessages
+        isLoading = false
+        currentInput = ""
+        
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isSidebarOpen = false
+        }
+    }
+    
+    private func handleSidebarChatDeletion(_ chat: [Message]) {
+        if let index = sidebarSavedChats.firstIndex(where: { $0.first?.id == chat.first?.id && $0.last?.id == chat.last?.id }) {
+            StorageManager.shared.deleteChat(at: index)
+            refreshSidebarChats()
+        }
+    }
+    
+    private func handleSidebarReturnHome() {
+        messages.removeAll()
+        currentInput = ""
+        withAnimation(.easeInOut(duration: 0.25)) {
+            isSidebarOpen = false
+        }
+    }
+    
+    private func handleSidebarToggleIncognito() {
+        isIncognitoMode.toggle()
     }
 
     private var chatLayer: some View {
@@ -714,6 +924,7 @@ struct ContentView: View {
                 selectedAIMode: $selectedAIMode
             )
             .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? .infinity : 580)
+            .padding(.horizontal, UIDevice.current.userInterfaceIdiom == .pad ? 24 : 0)
         }
         .background(AppTheme.background)
         .clipShape(RoundedRectangle(cornerRadius: 0, style: .continuous))
@@ -736,7 +947,7 @@ struct ContentView: View {
                 .padding(.top, 18)
                 .transition(.move(edge: .top).combined(with: .opacity))
                 .onTapGesture {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    withAnimation(.easeInOut(duration: 0.25)) {
                         messages = pendingChatForHome
                         pendingChatForHome.removeAll()
                         homeNewMessageAvailable = false
@@ -765,7 +976,7 @@ struct ContentView: View {
                     if messages.isEmpty && !isSidebarOpen && value.translation.width > 0 && value.startLocation.x < 50 {
                         // Gesture başlangıcı ekranın sol kenarından 50pt içindeyse
                         if value.translation.width > 100 {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 isSidebarOpen = true
                             }
                         }
@@ -774,7 +985,7 @@ struct ContentView: View {
                 .onEnded { value in
                     // Hareket tamamlandığında sidebar'ı aç
                     if messages.isEmpty && !isSidebarOpen && value.translation.width > 80 && value.startLocation.x < 50 {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             isSidebarOpen = true
                         }
                         let impact = UIImpactFeedbackGenerator(style: .medium)
@@ -1271,7 +1482,7 @@ struct MessagesView: View {
                                 .frame(height: keyboardHeight > 0 ? 8 : 0)
                                 .id("keyboard")
                         }
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, UIDevice.current.userInterfaceIdiom == .pad ? 32 : 18)
                         .padding(.top, 24)
                         .padding(.bottom, 12)
                         .onChange(of: messages.count) { oldCount, newCount in
@@ -1530,6 +1741,7 @@ struct ModelSelectorView: View {
             await MainActor.run { isLoading = false }
         }
     }
+    
 }
 
 #Preview {
